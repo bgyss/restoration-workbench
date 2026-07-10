@@ -11,13 +11,22 @@
         config.allowUnfree = true;
       }));
     in {
-      devShells = forEachSystem (pkgs: {
+      devShells = forEachSystem (pkgs:
+        let
+          deepFilterCli = pkgs.deepfilternet.overrideAttrs (_old: {
+            pname = "deep-filter";
+            buildAndTestSubdir = "libDF";
+            buildFeatures = [ "bin" "tract" "wav-utils" "transforms" ];
+            postInstall = "";
+          });
+        in {
         default = pkgs.mkShell {
           packages = with pkgs; [
             cargo
             clang
+            deepFilterCli
             deepfilternet
-            ffmpeg-full
+            ffmpeg
             git
             mediainfo
             mise
@@ -34,7 +43,7 @@
             export LADSPA_PATH="${pkgs.deepfilternet}/lib/ladspa''${LADSPA_PATH:+:$LADSPA_PATH}"
             echo "VHS restoration shell: run 'mise run doctor' to verify tools."
           '';
-        };
+          };
       });
     };
 }

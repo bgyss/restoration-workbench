@@ -5,6 +5,7 @@ import pytest
 from scripts.restore import (
     baseline_times,
     combing_times,
+    projected_hours,
     quote,
     read_integrated_loudness,
     safe_workdir,
@@ -38,6 +39,10 @@ def test_reference_times_stay_inside_shorter_capture():
     assert max(baseline_times(100)) < 100
     assert max(combing_times(100)) < 100
     assert len(combing_times(1000)) == 12
+
+
+def test_projected_hours_converts_seconds_to_hours():
+    assert projected_hours(16.3, 11907.765, 60) == pytest.approx(0.8985, rel=0.01)
 
 
 def test_metric_readers(tmp_path: Path):

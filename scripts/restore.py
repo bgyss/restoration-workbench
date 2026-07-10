@@ -73,6 +73,10 @@ def duration(data: dict) -> float:
     return float(data.get("format", {}).get("duration", 0))
 
 
+def projected_hours(elapsed_seconds: float, source_duration: float, sample_duration: float) -> float:
+    return elapsed_seconds * source_duration / sample_duration / 3600
+
+
 def baseline_times(source_duration: float) -> tuple[int, ...]:
     return tuple(min(int(source_duration - 1), max(0, int(source_duration * fraction))) for fraction in BASELINE_FRACTIONS)
 
@@ -133,7 +137,7 @@ def audio_restore_file(r: Runner, source: Path, destination: Path, method: str, 
     if chosen == "deepfilter":
         outdir = destination.parent / (destination.stem + "-deepfilter")
         outdir.mkdir(exist_ok=True)
-        r.run(("deep-filter", "--attenuation-limit", "6", str(declicked), "--output-dir", str(outdir)))
+        r.run(("deep-filter", "--atten-lim-db", "6", "--output-dir", str(outdir), str(declicked)))
         candidates = sorted(outdir.glob("*.wav"))
         if not candidates:
             raise RuntimeError("deep-filter produced no WAV output")
@@ -177,7 +181,11 @@ def video_samples(r: Runner, source_duration: float) -> float:
         r.ffmpeg("-i", str(source), "-map", "0:v:0", "-vf", vf, "-c:v", "libx264", "-crf", "19", "-preset", "slow", "-an", str(video_only))
         if label == "A":
             sample_data = json.loads(r.ffprobe("-v", "error", "-show_format", "-of", "json", str(source), capture=True).stdout)
-            projection = max(time.monotonic() - started, 0.001) * source_duration / duration(sample_data)
+            projection = projected_hours(
+                max(time.monotonic() - started, 0.001),
+                source_duration,
+                duration(sample_data),
+            )
         r.ffmpeg("-i", str(video_only), "-i", str(r.workdir / "samples" / f"sample-{label}-clean.m4a"), "-map", "0:v:0", "-map", "1:a:0", "-c", "copy", str(filtered))
         r.ffmpeg("-i", str(source), "-i", str(filtered), "-filter_complex", "[0:v][1:v]ssim=stats_file=" + str(r.workdir / "review" / f"ssim-{label}.log"), "-an", "-f", "null", "-")
         for index, timestamp in enumerate((10, 25, 40, 55), 1):
@@ -281,11 +289,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--workdir", type=Path, required=True)
-    parser.add_argument("--audio-method", choices=("auto", "deepfilter", "sox", "ffmpeg"), default="auto")
+    parser.add_argument(
+        "--audio-method",
+        choices=("auto", "deepfilter", "sox", "ffmpeg"),
+        default="deepfilter",
+    )
     parser.add_argument("--approve-samples", action="store_true")
     parser.add_argument("--full", action="store_true")
     args = parser.parse_args(argv)
     require_tools(("ffmpeg", "ffprobe"))
+    if args.audio_method == "deepfilter" and not shutil.which("deep-filter"):
+        raise SystemExit("DeepFilterNet CLI is required; enter the project shell with `nix develop`.")
     if not args.source.is_file():
         raise SystemExit(f"Source does not exist: {args.source}")
     safe_workdir(args.source, args.workdir)
