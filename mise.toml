@@ -1,0 +1,32 @@
+[tools]
+python = "3.12"
+uv = "latest"
+rust = "stable"
+
+[env]
+UV_PROJECT_ENVIRONMENT = ".venv"
+UV_CACHE_DIR = ".uv-cache"
+
+[tasks.sync]
+description = "Create or update the uv virtual environment"
+run = "uv sync"
+
+[tasks.doctor]
+description = "Check the media and language toolchain"
+run = [
+  "python --version",
+  "uv --version",
+  "rustup show active-toolchain",
+  "cargo --version",
+  "ffmpeg -hide_banner -version | head -n 1",
+  "ffmpeg -hide_banner -filters 2>/dev/null | grep -E 'adeclick|adeclip' || true",
+  "sox --version",
+]
+
+[tasks.check]
+description = "Run the available Python and Rust checks"
+run = [
+  "uv run ruff check .",
+  "uv run pytest -q",
+  "if test -f Cargo.toml; then cargo fmt --all -- --check && cargo check --all-targets; else echo 'No Cargo.toml yet; Rust toolchain verified by doctor.'; fi",
+]

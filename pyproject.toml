@@ -1,0 +1,18 @@
+[project]
+name = "vhs-restoration"
+version = "0.1.0"
+description = "Reproducible tooling for conservative VHS capture restoration."
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[tool.uv]
+default-groups = ["dev"]
+
+[dependency-groups]
+dev = [
+  "pytest>=8",
+  "ruff>=0.8",
+]
+
+[tool.ruff]
+line-length = 100

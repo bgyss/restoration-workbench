@@ -1,0 +1,18 @@
+.venv/
+.uv-cache/
+__pycache__/
+*.py[cod]
+.ruff_cache/
+target/
+.mise-cache/
+.mise-state/
+.nix-cache/
+
+# Local restoration work must never become part of the project checkout.
+source/
+work/
+baseline/
+review/
+*.mkv
+*.wav
+*.m4a
