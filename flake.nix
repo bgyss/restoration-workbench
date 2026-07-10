@@ -16,6 +16,7 @@
           packages = with pkgs; [
             cargo
             clang
+            deepfilternet
             ffmpeg-full
             git
             mediainfo
@@ -30,10 +31,10 @@
             export UV_PROJECT_ENVIRONMENT="''${UV_PROJECT_ENVIRONMENT:-.venv}"
             export UV_CACHE_DIR="''${UV_CACHE_DIR:-.uv-cache}"
             export RUST_BACKTRACE="''${RUST_BACKTRACE:-1}"
+            export LADSPA_PATH="${pkgs.deepfilternet}/lib/ladspa''${LADSPA_PATH:+:$LADSPA_PATH}"
             echo "VHS restoration shell: run 'mise run doctor' to verify tools."
           '';
         };
       });
     };
 }
-

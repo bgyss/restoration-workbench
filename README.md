@@ -19,15 +19,11 @@ mise run doctor
 also makes rustup select stable with `rustfmt` and `clippy` whenever Rust is
 invoked from this checkout.
 
-The Nix shell provides ffmpeg (including x264), sox, mkvtoolnix, mediainfo,
-uv, mise, and rustup. DeepFilterNet is intentionally not locked into the base
-Python project because it is a larger, speech-oriented dependency and must be
-evaluated on the three restoration samples before use. Install it into the
-project environment when the audio samples are ready:
-
-```sh
-uv pip install deepfilternet
-```
+The Nix shell provides ffmpeg (including x264), SoX, the DeepFilterNet LADSPA
+plugin, mkvtoolnix, mediainfo, uv, mise, and rustup. The shell exports the
+plugin through `LADSPA_PATH`. It is speech-oriented and remains subject to the
+three-sample ambience review before use; the pipeline selects SoX unless the
+upstream `deep-filter` CLI is separately available.
 
 Use `UV_CACHE_DIR=.uv-cache` for direct uv commands outside mise. Never place
 the source media in the checkout; use a separate working directory as required
@@ -52,8 +48,9 @@ python scripts/restore.py \
   --approve-samples --full
 ```
 
-`--audio-method auto` uses DeepFilterNet when `deep-filter` is installed and
-otherwise uses conservative SoX noise reduction. The fallback video chain is
+`--audio-method auto` uses DeepFilterNet when `deep-filter` is installed, then
+conservative SoX noise reduction, and finally ffmpeg `afftdn` when neither is
+available. The fallback video chain is
 `pp7=qp=2:mode=medium,hqdn3d=3:2:6:4`; VapourSynth is not required for this
 reproducible first path. The runner never writes to the source and records
 commands, tool versions, metrics, and deviations in `RESTORATION_REPORT.md`.
