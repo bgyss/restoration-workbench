@@ -23,7 +23,7 @@ target/
 # Local restoration work must never become part of the project checkout.
 source/
 video/
-work/
+/work/
 baseline/
 review/
 *.mkv
