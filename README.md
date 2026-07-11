@@ -29,6 +29,9 @@ model runners are deliberately installed and pinned separately. Load
 input, and review samples before using the full workflow. API-format equivalents are provided
 beside the UI workflows.
 
+For a step-by-step ComfyUI Desktop test, see
+[`docs/comfyui-desktop-quickstart.md`](docs/comfyui-desktop-quickstart.md).
+
 ## First use
 
 With Nix installed:
