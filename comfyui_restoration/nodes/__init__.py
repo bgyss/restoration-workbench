@@ -261,6 +261,7 @@ class PlanRepresentativeSamples:
     CATEGORY = "Restoration/02 Planning"
     RETURN_TYPES = ("RESTORATION_SAMPLE_PLAN",)
     FUNCTION = "plan"
+    OUTPUT_NODE = True
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -311,6 +312,7 @@ class ResumableFullRun:
     CATEGORY = "Restoration/07 Execution"
     RETURN_TYPES = ("RESTORATION_RUN",)
     FUNCTION = "start"
+    OUTPUT_NODE = True
 
     @classmethod
     def INPUT_TYPES(cls):
