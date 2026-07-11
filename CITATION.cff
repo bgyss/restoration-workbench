@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+title: "ComfyUI Audio/Video Restoration Workbench"
+message: "If this work helps your research or restoration workflow, please cite the repository."
+type: software
+authors:
+  - family-names: Contributors
+    given-names: VHS Restoration
+license: MIT
+version: 0.1.0
+repository-code: https://github.com/example/comfyui-restoration

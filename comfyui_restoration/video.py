@@ -8,6 +8,11 @@ from .media import tool_path
 from .chunking import VideoChunk
 
 
+def _distinct(source: Path, destination: Path) -> None:
+    if source.resolve() == destination.resolve():
+        raise ValueError("video destination must not overwrite source")
+
+
 def ensure_progressive(probe: dict) -> None:
     video = next((item for item in probe.get("streams", []) if item.get("codec_type") == "video"), None)
     if video and video.get("field_order") not in (None, "progressive", "unknown"):
@@ -15,6 +20,7 @@ def ensure_progressive(probe: dict) -> None:
 
 
 def baseline_command(source: Path, destination: Path, *, crf: int = 19) -> list[str]:
+    _distinct(source, destination)
     if not 16 <= crf <= 24:
         raise ValueError("conservative CRF must be between 16 and 24")
     return [tool_path("ffmpeg"), "-hide_banner", "-y", "-i", str(source), "-vf", "pp7=qp=2:mode=medium,hqdn3d=3:2:6:4", "-map", "0:v:0", "-c:v", "libx264", "-crf", str(crf), "-preset", "slow", "-pix_fmt", "yuv420p", "-an", str(destination)]

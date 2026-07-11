@@ -3,9 +3,9 @@
 from pathlib import Path
 from typing import Any
 
-from ..core import MediaSource, SamplePlan
+from ..core import AudioArtifact, MediaSource, SamplePlan, VideoArtifact
 from ..execution import Approval, ResumableRun, candidate_hash
-from ..media import extract_audio, ingest
+from ..media import extract_audio, ffprobe, ingest, run_command
 from ..audio import detect_clicks, repair_command
 from ..audio import guard_loudness_command
 from ..adapters.audio_models import AudioModelRequest, command as audio_model_command
@@ -16,7 +16,8 @@ from ..video import stitch_qc
 from ..sampling import plan_samples as build_sample_plan
 from ..adapters.video_models import VideoModelRequest, request_manifest
 from ..remux import remux_command, validation_command
-from ..report import export_json
+from ..report import export_json, export_markdown
+from ..analysis import analyze_probe
 
 
 class RestorationLoadMedia:
@@ -43,15 +44,12 @@ class AnalyzeSource:
         return {"required": {"source": ("RESTORATION_SOURCE",)}}
 
     def analyze(self, source: MediaSource):
-        streams = source.probe.get("streams", [])
-        video = next((item for item in streams if item.get("codec_type") == "video"), {})
-        audio = next((item for item in streams if item.get("codec_type") == "audio"), {})
-        return ({"video": video, "audio": audio, "interlaced_risk": video.get("field_order") not in (None, "progressive", "unknown")},)
+        return (analyze_probe(source.probe),)
 
 
 class ExtractLosslessAudio:
     CATEGORY = "Restoration/02 Audio"
-    RETURN_TYPES = ("STRING",)
+    RETURN_TYPES = ("RESTORATION_AUDIO",)
     FUNCTION = "extract"
 
     @classmethod
@@ -61,7 +59,14 @@ class ExtractLosslessAudio:
     def extract(self, source: MediaSource, workspace: str, output: str):
         root = Path(workspace).expanduser()
         args = extract_audio(source, root, Path(output))
-        return (" ".join(args),)
+        run_command(args)
+        probe = ffprobe(root / output)
+        stream = next(item for item in probe.get("streams", []) if item.get("codec_type") == "audio")
+        rate = int(stream.get("sample_rate", 0))
+        count = int(stream.get("nb_frames", 0) or 0) or int(float(probe.get("format", {}).get("duration", 0) or 0) * rate)
+        source_audio = next((item for item in source.probe.get("streams", []) if item.get("codec_type") == "audio"), {})
+        offset_ms = float(source_audio.get("start_time", 0) or 0) * 1000
+        return (AudioArtifact(output, rate, int(stream.get("channels", 0)), count, offset_ms, (source.path,)),)
 
 
 class DetectAudioDefects:
@@ -87,7 +92,8 @@ class RepairAudioDefects:
         return {"required": {"source": ("STRING",), "destination": ("STRING",), "method": (["adeclick", "bypass"],)}}
 
     def repair(self, source: str, destination: str, method: str):
-        return (" ".join(repair_command(Path(source), Path(destination), method=method)),)
+        run_command(repair_command(Path(source), Path(destination), method=method))
+        return (destination,)
 
 
 class AudioEQLoudnessGuard:
@@ -100,7 +106,8 @@ class AudioEQLoudnessGuard:
         return {"required": {"source": ("STRING",), "destination": ("STRING",), "true_peak": ("FLOAT", {"default": -1.0, "max": 0})}}
 
     def guard(self, source: str, destination: str, true_peak: float):
-        return (" ".join(guard_loudness_command(Path(source), Path(destination), true_peak=true_peak)),)
+        run_command(guard_loudness_command(Path(source), Path(destination), true_peak=true_peak))
+        return (destination,)
 
 
 class OptionalAudioModel:
@@ -110,16 +117,16 @@ class OptionalAudioModel:
 
     @classmethod
     def INPUT_TYPES(cls):
-        return {"required": {"adapter": (["deepfilternet", "voicefixer", "resemble_enhance", "demucs"],), "source": ("STRING",), "destination": ("STRING",), "mode": (["denoise", "enhance"],), "experimental_reconstruction": ("BOOLEAN", {"default": False})}}
+        return {"required": {"adapter": (["deepfilternet", "voicefixer", "resemble_enhance", "demucs"],), "source": ("STRING",), "destination": ("STRING",), "mode": (["denoise", "enhance"],), "attenuation_db": ("FLOAT", {"default": 6.0, "min": 0, "max": 30}), "device": (["auto", "cpu", "cuda", "mps"],), "chunk_seconds": ("FLOAT", {"default": 30.0, "min": 1}), "overlap_seconds": ("FLOAT", {"default": 2.0, "min": 0}), "master_rate": ("INT", {"default": 48000, "min": 8000}), "model_rate": ("INT", {"default": 44100, "min": 8000}), "experimental_reconstruction": ("BOOLEAN", {"default": False}), "bypass": ("BOOLEAN", {"default": False})}}
 
-    def configure(self, adapter: str, source: str, destination: str, mode: str, experimental_reconstruction: bool):
-        request = AudioModelRequest(adapter, Path(source), Path(destination), mode=mode, experimental_reconstruction=experimental_reconstruction)
-        return ({"request": request.__dict__, "command": audio_model_command(request) if adapter in {"deepfilternet", "demucs"} else None},)
+    def configure(self, adapter: str, source: str, destination: str, mode: str, attenuation_db: float, device: str, chunk_seconds: float, overlap_seconds: float, master_rate: int, model_rate: int, experimental_reconstruction: bool, bypass: bool):
+        request = AudioModelRequest(adapter, Path(source), Path(destination), mode=mode, attenuation_db=attenuation_db, device=device, experimental_reconstruction=experimental_reconstruction, chunk_seconds=chunk_seconds, overlap_seconds=overlap_seconds, bypass=bypass, master_rate=master_rate, model_rate=model_rate)
+        return ({"request": request.__dict__, "command": audio_model_command(request) if adapter in {"deepfilternet", "demucs"} or bypass else None},)
 
 
 class VideoBaselineRestore:
     CATEGORY = "Restoration/04 Video"
-    RETURN_TYPES = ("STRING",)
+    RETURN_TYPES = ("RESTORATION_VIDEO",)
     FUNCTION = "restore"
 
     @classmethod
@@ -127,7 +134,10 @@ class VideoBaselineRestore:
         return {"required": {"source": ("STRING",), "destination": ("STRING",), "crf": ("INT", {"default": 19, "min": 16, "max": 24})}}
 
     def restore(self, source: str, destination: str, crf: int):
-        return (" ".join(baseline_command(Path(source), Path(destination), crf=crf)),)
+        run_command(baseline_command(Path(source), Path(destination), crf=crf))
+        probe = ffprobe(Path(destination))
+        stream = next(item for item in probe.get("streams", []) if item.get("codec_type") == "video")
+        return (VideoArtifact(destination, int(stream.get("width", 0)), int(stream.get("height", 0)), int(stream.get("nb_frames", 0) or 0), str(stream.get("r_frame_rate", "")), stream.get("sample_aspect_ratio"), stream.get("display_aspect_ratio"), (source,)),)
 
 
 class CompareCandidates:
@@ -180,10 +190,10 @@ class VideoModelAdapter:
 
     @classmethod
     def INPUT_TYPES(cls):
-        return {"required": {"backend": ("STRING",), "source": ("STRING",), "destination": ("STRING",), "model_hash": ("STRING",), "scale": ("INT", {"default": 1, "min": 1}), "temporal_window": ("INT", {"default": 5, "min": 1}), "strength": ("FLOAT", {"default": 0.1, "min": 0, "max": 1}), "seed": ("INT", {"default": 0})}}
+        return {"required": {"backend": ("STRING",), "source": ("STRING",), "destination": ("STRING",), "model_hash": ("STRING",), "scale": ("INT", {"default": 1, "min": 1}), "temporal_window": ("INT", {"default": 5, "min": 1}), "strength": ("FLOAT", {"default": 0.1, "min": 0, "max": 1}), "seed": ("INT", {"default": 0}), "tile_size": ("INT", {"default": 0, "min": 0}), "tile_overlap": ("INT", {"default": 0, "min": 0}), "offload": ("BOOLEAN", {"default": False})}}
 
-    def configure(self, backend: str, source: str, destination: str, model_hash: str, scale: int, temporal_window: int, strength: float, seed: int):
-        return (request_manifest(VideoModelRequest(backend, Path(source), Path(destination), model_hash, scale, temporal_window, strength, seed)),)
+    def configure(self, backend: str, source: str, destination: str, model_hash: str, scale: int, temporal_window: int, strength: float, seed: int, tile_size: int, tile_overlap: int, offload: bool):
+        return (request_manifest(VideoModelRequest(backend, Path(source), Path(destination), model_hash, scale, temporal_window, strength, seed, tile_size=tile_size or None, tile_overlap=tile_overlap, offload=offload)),)
 
 
 class PreservationAwareRemux:
@@ -196,7 +206,8 @@ class PreservationAwareRemux:
         return {"required": {"source": ("STRING",), "video": ("STRING",), "audio": ("STRING",), "destination": ("STRING",), "delay_ms": ("INT", {"default": 0})}}
 
     def build(self, source: str, video: str, audio: str, destination: str, delay_ms: int):
-        return (" ".join(remux_command(Path(source), Path(video), Path(audio), Path(destination), delay_ms=delay_ms)),)
+        run_command(remux_command(Path(source), Path(video), Path(audio), Path(destination), delay_ms=delay_ms))
+        return (destination,)
 
 
 class ValidateRestoration:
@@ -209,7 +220,8 @@ class ValidateRestoration:
         return {"required": {"output": ("STRING",)}}
 
     def validate(self, output: str):
-        return (" ".join(validation_command(Path(output))),)
+        run_command(validation_command(Path(output)))
+        return (output,)
 
 
 class ExportReviewReport:
@@ -222,7 +234,11 @@ class ExportReviewReport:
         return {"required": {"source_json": ("STRING",), "destination": ("STRING",), "workspace": ("STRING",)}}
 
     def export(self, source_json: str, destination: str, workspace: str):
-        export_json(Path(source_json), Path(destination), Path(workspace))
+        source = Path(source_json)
+        output = Path(destination)
+        root = Path(workspace)
+        export_json(source, output.with_suffix(".json"), root)
+        export_markdown(source, output.with_suffix(".md"), root)
         return (destination,)
 
 
@@ -233,7 +249,7 @@ class PlanRepresentativeSamples:
 
     @classmethod
     def INPUT_TYPES(cls):
-        return {"required": {"duration_seconds": ("FLOAT", {"default": 60.0, "min": 1.0}), "seed": ("INT", {"default": 0})}}
+        return {"required": {"duration_seconds": ("FLOAT", {"default": 60.0, "min": 1.0}), "seed": ("INT", {"default": 0})}, "optional": {"source": ("RESTORATION_SOURCE",)}}
 
     def plan(self, duration_seconds: float, seed: int):
         samples = tuple(build_sample_plan(duration_seconds))

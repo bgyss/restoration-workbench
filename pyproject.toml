@@ -12,6 +12,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["comfyui_restoration*"]
 
+[tool.setuptools.package-data]
+comfyui_restoration = ["schemas/*.json"]
+
 [tool.uv]
 default-groups = ["dev"]
 

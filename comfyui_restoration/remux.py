@@ -14,8 +14,9 @@ def remux_command(source: Path, video: Path, audio: Path, destination: Path, *, 
     if destination in {source, video, audio}:
         raise ValueError("remux destination must be distinct from all inputs")
     if shutil.which("mkvmerge"):
-        # The explicit video input is kept separate so an approved filtered video is used.
-        return [tool_path("mkvmerge"), "-o", str(destination), str(video), "--sync", f"0:{delay_ms}", str(audio)]
+        # The source is a metadata-only first input: mkvmerge carries its chapters/tags while
+        # the approved filtered video and audio are selected from the following inputs.
+        return [tool_path("mkvmerge"), "-o", str(destination), "--no-video", "--no-audio", str(source), str(video), "--sync", f"0:{delay_ms}", str(audio)]
     return [tool_path("ffmpeg"), "-hide_banner", "-y", "-i", str(video), "-itsoffset", str(delay_ms / 1000), "-i", str(audio), "-i", str(source), "-map", "0:v:0", "-map", "1:a:0", "-map_metadata", "2", "-map_chapters", "2", "-c", "copy", "-avoid_negative_ts", "disabled", str(destination)]
 
 

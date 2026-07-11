@@ -23,3 +23,19 @@ workflows and workflow templates. See [custom nodes](https://docs.comfy.org/cust
 repositories are linked from the goal prompt and must be pinned with a commit, model hash, and
 license record before enabling an adapter. No weights, third-party code, or media are committed.
 
+## MCP reconnaissance (2026-07-10)
+
+The official Comfy Cloud MCP project is a cloud-facing research preview, so it is not a required
+dependency for this local-first package. Community servers differ substantially: one local server
+uses an HTTP MCP endpoint, while another exposes broad workflow/model-management operations and
+permits external model and registry integrations. Those capabilities are broader than this
+workbench's least-privilege policy. The project therefore keeps its own narrow JSON-lines contract
+and treats an MCP bridge as an adapter. The relevant references are [Comfy Cloud MCP](https://github.com/Comfy-Org/comfy-cloud-mcp),
+[local ComfyUI MCP server](https://github.com/joenorton/comfyui-mcp-server), and
+[workflow automation MCP server](https://github.com/IO-AtelierTech/comfyui-mcp).
+
+ComfyUI's registry standards prohibit `eval`/`exec` and runtime package installation in custom
+nodes; the implementation follows that boundary and keeps subprocess arguments fixed by adapters.
+See the [registry security standards](https://docs.comfy.org/registry/standards). Registry names
+are globally unique and published versions are immutable, so publication remains a separately
+approved release step; see the [registry overview](https://docs.comfy.org/registry/overview).

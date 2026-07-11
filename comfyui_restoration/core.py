@@ -52,6 +52,48 @@ class SamplePlan:
 
 
 @dataclass(frozen=True)
+class AudioArtifact:
+    path: str
+    sample_rate: int
+    channels: int
+    sample_count: int
+    timeline_offset_ms: float = 0.0
+    parents: tuple[str, ...] = ()
+    schema_version: str = SCHEMA_VERSION
+
+
+@dataclass(frozen=True)
+class VideoArtifact:
+    path: str
+    width: int
+    height: int
+    frame_count: int
+    frame_rate: str
+    sar: str | None = None
+    dar: str | None = None
+    parents: tuple[str, ...] = ()
+    schema_version: str = SCHEMA_VERSION
+
+
+@dataclass(frozen=True)
+class RestorationCandidate:
+    branch: str
+    parameters: dict[str, Any]
+    output: str | None = None
+    metrics: dict[str, Any] = field(default_factory=dict)
+    warnings: tuple[str, ...] = ()
+    schema_version: str = SCHEMA_VERSION
+
+
+@dataclass(frozen=True)
+class ReviewBundle:
+    path: str
+    candidates: tuple[str, ...]
+    approval_state: str = "pending"
+    schema_version: str = SCHEMA_VERSION
+
+
+@dataclass(frozen=True)
 class RunManifest:
     run_id: str
     status: str
@@ -72,8 +114,13 @@ def write_manifest(path: Path, manifest: RunManifest) -> None:
     write_json(path, asdict(manifest))
 
 
-def load_manifest(path: Path) -> RunManifest:
+def load_manifest(path: Path, *, root: Path | None = None) -> RunManifest:
+    if root is not None and not path.resolve().is_relative_to(root.resolve()):
+        raise ValueError("manifest is outside the allowed workspace")
     data = json.loads(path.read_text())
     if data.get("schema_version") != SCHEMA_VERSION:
         raise ValueError("unsupported or stale manifest schema")
+    required = {"run_id", "status", "root"}
+    if not required <= data.keys() or data["status"] not in {"planned", "running", "cancelled", "complete", "failed"}:
+        raise ValueError("malformed run manifest")
     return RunManifest(**data)

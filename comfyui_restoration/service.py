@@ -14,9 +14,10 @@ from .media import ffprobe, run_command
 from .review import build_review_bundle
 from .sampling import plan_samples as build_sample_plan
 from .candidates import audio_candidate_matrix, record_candidate
-from .report import export_json
+from .report import export_json, export_markdown
 from .remux import validation_command, compare_streams
-from .execution import ResumableRun
+from .validation import validate_invariants
+from .analysis import analyze_probe
 
 
 class RestorationService:
@@ -42,7 +43,7 @@ class RestorationService:
     def probe_media(self, key: str, relative_path: str) -> dict:
         request = self._request("probe_media", key, relative_path)
         source = ingest(request.validate() or Path(relative_path), self.workspace)
-        return {"path": source.path, "identity": source.identity, "probe": source.probe}
+        return {"path": source.path, "identity": source.identity, "probe": source.probe, "analysis": analyze_probe(source.probe)}
 
     def plan_samples(self, key: str, duration_seconds: float) -> dict:
         self._request("plan_samples", key)
@@ -96,9 +97,15 @@ class RestorationService:
         result = {"decode_ok": True, "probe": output_probe}
         if source_probe is not None:
             result["preservation"] = compare_streams(source_probe, output_probe)
+            result["invariants"] = validate_invariants(source_probe, output_probe)
+            if not result["invariants"]["valid"]:
+                raise ValueError(f"output validation failed: {result['invariants']['failures']}")
         return result
 
     def export_restoration_report(self, key: str, source_json: str, destination: str) -> str:
         self._request("export_restoration_report", key, source_json)
-        export_json(self.workspace / source_json, self.workspace / destination, self.workspace)
+        source = self.workspace / source_json
+        output = self.workspace / destination
+        export_json(source, output.with_suffix(".json"), self.workspace)
+        export_markdown(source, output.with_suffix(".md"), self.workspace)
         return destination

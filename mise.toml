@@ -41,6 +41,10 @@ run = "python -c \"import json; from pathlib import Path; [json.loads(p.read_tex
 description = "Run the tiny generated FFmpeg fixture through faithful branches"
 run = "python scripts/test_e2e_small.py"
 
+[tasks.benchmark-synthetic]
+description = "Generate the pinned synthetic corpus and machine-readable evidence"
+run = "python scripts/run_synthetic_benchmark.py work/synthetic-benchmark"
+
 [tasks.audit-public]
 description = "Reject personal paths and checked-in source media references"
-run = "! rg -n '/Users/|/private/|/Applications/' --glob '!docs/prompts/**' --glob '!AGENTS.md' ."
+run = "python scripts/audit_public.py"

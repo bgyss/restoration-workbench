@@ -19,6 +19,15 @@ branch cannot claim restoration, and full execution must remain downstream of a 
 artifact. See [`docs/upstream-evaluation.md`](docs/upstream-evaluation.md) for the current
 integration/licensing boundary.
 
+## Install as a ComfyUI custom node
+
+Copy or clone this repository under `ComfyUI/custom_nodes/comfyui-restoration/`, then restart
+ComfyUI. The base package uses Python standard-library orchestration and external FFmpeg; optional
+model runners are deliberately installed and pinned separately. Load
+`examples/workflows/generic_restoration_review.json` for the media-free graph, replace its local
+input, and review samples before using the full workflow. API-format equivalents are provided
+beside the UI workflows.
+
 ## First use
 
 With Nix installed:

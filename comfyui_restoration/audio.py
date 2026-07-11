@@ -10,6 +10,11 @@ from typing import Any
 from .media import tool_path
 
 
+def _distinct(source: Path, destination: Path) -> None:
+    if source.resolve() == destination.resolve():
+        raise ValueError("audio destination must not overwrite source")
+
+
 def detect_clicks(path: Path, *, threshold: float = 0.85, max_events: int = 10_000) -> list[dict[str, Any]]:
     """Detect short full-scale discontinuities without changing the source WAV."""
     with wave.open(str(path), "rb") as stream:
@@ -37,6 +42,7 @@ def detect_clicks(path: Path, *, threshold: float = 0.85, max_events: int = 10_0
 
 
 def repair_command(source: Path, destination: Path, *, method: str = "adeclick") -> list[str]:
+    _distinct(source, destination)
     if method not in {"adeclick", "bypass"}:
         raise ValueError("unsupported audio repair method")
     filters = [] if method == "bypass" else ["-af", "adeclick"]
@@ -44,7 +50,7 @@ def repair_command(source: Path, destination: Path, *, method: str = "adeclick")
 
 
 def guard_loudness_command(source: Path, destination: Path, *, true_peak: float = -1.0) -> list[str]:
+    _distinct(source, destination)
     if not math.isfinite(true_peak) or true_peak > 0:
         raise ValueError("true peak ceiling must be finite and <= 0 dBTP")
     return [tool_path("ffmpeg"), "-hide_banner", "-y", "-i", str(source), "-af", f"loudnorm=I=-23:TP={true_peak}:LRA=11", "-c:a", "pcm_s24le", str(destination)]
-

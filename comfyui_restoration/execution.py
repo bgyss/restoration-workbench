@@ -62,6 +62,7 @@ class ResumableRun:
         state = self._state()
         state["status"] = "running"
         state["approval"] = {"reviewer": approval.reviewer, "candidate_hash": approval.candidate_hash}
+        self.state_path.write_text(json.dumps(state, indent=2) + "\n")
         for chunk in chunks:
             if self._state().get("status") == "cancelled":
                 break
