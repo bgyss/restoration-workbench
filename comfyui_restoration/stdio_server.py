@@ -16,8 +16,8 @@ from .service import RestorationService
 
 
 class StdioAgentServer:
-    def __init__(self, workspace: Path):
-        self.service = RestorationService(workspace)
+    def __init__(self, workspace: Path, *, approval_secret: bytes | None = None):
+        self.service = RestorationService(workspace, approval_secret=approval_secret)
 
     def handle(self, request: dict) -> dict:
         request_id = request.get("id")
@@ -44,4 +44,3 @@ class StdioAgentServer:
                 response = {"id": None, "ok": False, "error": {"type": "JSONDecodeError", "message": str(error)}}
             output_stream.write(json.dumps(response, sort_keys=True) + "\n")
             output_stream.flush()
-

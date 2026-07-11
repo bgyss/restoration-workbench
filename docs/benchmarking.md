@@ -15,6 +15,14 @@ evidence-selected two-stage branch. Demucs is recorded as rejected unless a samp
 marked as having a demonstrated overlapping speech/music use case. Every branch carries its
 parameters and rejection reason so pruning does not become an undocumented subjective choice.
 
+The agent service persists returned sample results at `review/candidate-results.json`, keeping
+candidate parameters and measured metrics available for later human review and approval.
+
+The opt-in command `python scripts/benchmark_deepfilter.py INPUT.wav OUTPUT_DIR RECORD.json`
+records an explicit `unavailable` result when DeepFilterNet is not installed. When available, it
+runs only the fixed adapter command and records runner version, input/output hashes, and PCM
+metrics; it never substitutes the DSP branch or silently downloads a model.
+
 `examples/benchmarks/external-sources.json` records three Library of Congress public-domain
 selection candidates with source and rights URLs, intended failure modes, and an explicit
 not-fetched/null-checksum state. It is a fetch plan, not a claim that media has been downloaded or

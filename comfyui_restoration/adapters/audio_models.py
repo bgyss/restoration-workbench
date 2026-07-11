@@ -40,7 +40,7 @@ class AudioModelRequest:
 
 
 def available_audio_adapters() -> dict[str, bool]:
-    return {"deepfilternet": shutil.which("deep-filter") is not None, "voicefixer": False, "resemble_enhance": False, "demucs": shutil.which("demucs") is not None}
+    return {"deepfilternet": shutil.which("deep-filter") is not None, "voicefixer": shutil.which("voicefixer-runner") is not None, "resemble_enhance": shutil.which("resemble-enhance") is not None, "demucs": shutil.which("demucs") is not None}
 
 
 def round_trip_sample_count(sample_count: int, source_rate: int, target_rate: int) -> int:
@@ -58,5 +58,10 @@ def command(request: AudioModelRequest) -> list[str]:
         return ["deep-filter", "--atten-lim-db", str(request.attenuation_db), "--output-dir", str(request.destination.parent), str(request.source)]
     if request.adapter == "demucs":
         return ["demucs", "--out", str(request.destination.parent), str(request.source)]
-    # These models intentionally require a separately installed runner; never infer or execute it.
-    raise RuntimeError(f"{request.adapter} adapter requires an explicitly configured subprocess environment")
+    runner = {"voicefixer": "voicefixer-runner", "resemble_enhance": "resemble-enhance"}[request.adapter]
+    if shutil.which(runner) is None:
+        raise RuntimeError(f"{request.adapter} runner is unavailable: install the reviewed adapter separately")
+    arguments = [runner, "--input", str(request.source), "--output", str(request.destination), "--mode", request.mode, "--device", request.device, "--chunk-seconds", str(request.chunk_seconds), "--overlap-seconds", str(request.overlap_seconds)]
+    if request.adapter in {"voicefixer", "resemble_enhance"}:
+        arguments.extend(["--model-rate", str(request.model_rate), "--master-rate", str(request.master_rate)])
+    return arguments

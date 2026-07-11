@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install CPU media tools
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y ffmpeg
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
@@ -17,3 +19,5 @@ jobs:
       - run: uv run pytest -q
       - run: uv run python scripts/validate_workflows.py
       - run: uv run python -c "import json; from pathlib import Path; [json.loads(p.read_text()) for p in Path('comfyui_restoration/schemas').glob('*.json')]"
+      - run: uv run python scripts/audit_public.py
+      - run: uv run python scripts/test_e2e_small.py

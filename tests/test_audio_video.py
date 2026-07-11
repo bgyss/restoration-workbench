@@ -56,3 +56,11 @@ def test_neural_enhancement_requires_explicit_experimental_label():
     assert round_trip_sample_count(48000, 48000, 44100) == 48000
     with pytest.raises(ValueError):
         AudioModelRequest("deepfilternet", Path("a"), Path("b"), model_rate=44100).validate()
+    import comfyui_restoration.adapters.audio_models as models
+    original = models.shutil.which
+    models.shutil.which = lambda name: "/usr/local/bin/runner" if name == "voicefixer-runner" else original(name)
+    try:
+        command = audio_model_command(AudioModelRequest("voicefixer", Path("a"), Path("b"), experimental_reconstruction=True))
+        assert command[0] == "voicefixer-runner"
+    finally:
+        models.shutil.which = original

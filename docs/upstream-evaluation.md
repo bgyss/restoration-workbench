@@ -16,6 +16,12 @@ replaceable.
 | ComfyUI | graph host | optional host; nodes are thin and API-first |
 | VideoHelperSuite | generic video I/O | optional; preservation-aware ingest/remux stays here |
 
+Optional speech adapters use fixed executable names (`voicefixer-runner` and `resemble-enhance`)
+with explicit input/output, mode, device, chunk, overlap, and sample-rate arguments. The graph
+cannot supply an arbitrary executable path; an unavailable runner fails closed. The runner contract
+is intentionally narrow so each separately reviewed environment can be replaced without changing
+the artifact or approval model.
+
 The official ComfyUI documentation describes custom nodes as ordinary nodes and supports API
 workflows and workflow templates. See [custom nodes](https://docs.comfy.org/custom-nodes/overview),
 [workflow API concepts](https://docs.comfy.org/development/core-concepts/workflow), and

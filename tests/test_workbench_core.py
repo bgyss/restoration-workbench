@@ -43,6 +43,39 @@ def test_resumable_run_persists_running_state_before_worker(tmp_path: Path):
     assert observed == ["running"]
 
 
+def test_resumable_run_preserves_cancelled_state_and_can_resume(tmp_path: Path):
+    params = {"branch": "faithful"}
+    run = ResumableRun(tmp_path, "cancel", params)
+    approval = Approval(candidate_hash(params), "reviewer", ({"sample": "A", "decision": "approve"},))
+
+    def cancel_after_first(chunk: str) -> str:
+        run.cancel()
+        return chunk + ".done"
+
+    cancelled = run.execute(["a", "b"], cancel_after_first, approval)
+    assert cancelled["status"] == "cancelled"
+    resumed = run.execute(["a", "b"], lambda chunk: chunk + ".done", approval)
+    assert resumed["status"] == "complete"
+    assert resumed["completed"] == ["a", "b"]
+
+
+def test_resumable_run_persists_failure_and_can_retry(tmp_path: Path):
+    params = {"branch": "faithful"}
+    run = ResumableRun(tmp_path, "failure", params)
+    approval = Approval(candidate_hash(params), "reviewer", ({"sample": "A", "decision": "approve"},))
+
+    def fail(_: str) -> str:
+        raise RuntimeError("synthetic worker failure")
+
+    with pytest.raises(RuntimeError, match="synthetic worker failure"):
+        run.execute(["a"], fail, approval)
+    failed = run.status()
+    assert failed["status"] == "failed"
+    assert failed["events"][-1]["event"] == "failed"
+    retried = run.execute(["a"], lambda chunk: chunk + ".done", approval)
+    assert retried["status"] == "complete"
+
+
 def test_sample_window_is_bounded():
     validate_sample_window(1, 2, 10)
     with pytest.raises(ValueError):

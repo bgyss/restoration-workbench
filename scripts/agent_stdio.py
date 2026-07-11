@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import sys
 from pathlib import Path
 
@@ -8,4 +9,5 @@ from comfyui_restoration.stdio_server import StdioAgentServer
 
 
 workspace = Path(sys.argv[1]) if len(sys.argv) == 2 else Path("work")
-StdioAgentServer(workspace).serve()
+secret = os.environ.get("COMFYUI_RESTORATION_APPROVAL_SECRET")
+StdioAgentServer(workspace, approval_secret=secret.encode() if secret else None).serve()

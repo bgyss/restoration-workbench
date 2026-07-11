@@ -9,7 +9,8 @@ The next-generation plan in
 extends that conservative baseline into a public ComfyUI audio/video restoration workbench with
 optional neural reconstruction, sample-gated long runs, and an MCP-ready agent interface.
 
-The initial installable package is `comfyui_restoration`. It provides file-backed typed artifacts,
+The installable distribution is `comfyui-restoration-workbench` and its Python package is
+`comfyui_restoration`. It provides file-backed typed artifacts,
 workspace/path safety, versioned run manifests, and thin ComfyUI nodes. Install or copy this
 checkout into `custom_nodes/`; the generic workflow in `examples/workflows/` is intentionally
 media-free. Optional neural adapters are not required for the conservative path.
@@ -78,3 +79,58 @@ The fallback video chain is
 `pp7=qp=2:mode=medium,hqdn3d=3:2:6:4`; VapourSynth is not required for this
 reproducible first path. The runner never writes to the source and records
 commands, tool versions, metrics, and deviations in `RESTORATION_REPORT.md`.
+
+## Workbench architecture
+
+The graph passes file-backed artifacts and JSON manifests rather than feature-length media tensors:
+
+```text
+ingest -> probe/analyze -> sample plan -> audio/video branches -> review bundle
+       -> signed human gate -> resumable run -> preservation remux -> validation/report
+```
+
+The conservative faithful branch is always retained. Experimental neural branches are optional,
+explicitly labeled, and never imply that generated detail is recovered historical fact.
+
+## Node catalog
+
+- Ingest and analysis: `RestorationLoadMedia`, `AnalyzeSource`, `PlanRepresentativeSamples`,
+  `ExtractLosslessAudio`, `DetectAudioDefects`.
+- Audio: `RepairAudioDefects`, `DeepFilterNetAudio`, `VoiceFixerAudio`, `ResembleEnhanceAudio`,
+  `DemucsSeparateRecombine`, `AudioSegmentRouter`, `AudioEQLoudnessGuard`.
+- Video: `VideoBaselineRestore`, `VideoInterlaceHandler`, `VideoModelAdapter`,
+  `VideoChunkPlannerStitcher`.
+- Review and execution: `CompareCandidates`, `HumanApprovalGate`, `ResumableFullRun`.
+- Output: `PreservationAwareRemux`, `ValidateRestoration`, `ExportReviewReport`.
+
+The review workflow is the default entry point. The full workflow requires an approval record tied
+to candidate parameters and a host signature; graph execution cannot self-approve.
+
+## Hardware and limitations
+
+| Profile | Supported use | Expectation |
+| --- | --- | --- |
+| CPU/conservative | Probe, samples, DSP, faithful FFmpeg lane | Recommended baseline; no neural reconstruction |
+| 8–12 GB VRAM | Short DeepFilterNet/video samples | One candidate at a time, chunked |
+| 16–24 GB VRAM | Larger sample matrix | Fixed overlap and bounded concurrency |
+| High memory | Approved full run | Requires measured sample projection and free-space preflight |
+
+VoiceFixer, Resemble Enhance, Demucs, BasicVSR++, and RVRT are not bundled. Their runners,
+weights, licenses, hashes, and hardware requirements must be reviewed separately. Optional model
+stacks may need isolated environments because their Python/PyTorch/CUDA requirements can conflict.
+The current production identity-backed approval/attestation workflow is deliberately a stretch goal;
+the local HMAC gate is the sample-first milestone.
+
+## Validation and development
+
+```sh
+mise run check
+mise run test-workflows
+mise run test-e2e-small
+mise run audit-public
+```
+
+Use `scripts/run_qc.py` for fixed FFmpeg black/freeze/silence/clipping diagnostics and
+`scripts/record_external_fixture.py` to record checksum/probe evidence for an authorized external
+fixture. Neither command downloads media. See [`docs/release-readiness.md`](docs/release-readiness.md)
+before treating a checkout as publishable.

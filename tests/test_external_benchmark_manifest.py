@@ -15,3 +15,9 @@ def test_external_manifest_is_rights_traceable_and_does_not_bundle_media():
         assert source["failure_modes"]
         assert source["download_status"] == "not_fetched"
         assert source["sha256"] is None
+
+
+def test_external_manifest_has_checked_in_schema():
+    schema = Path(__file__).parents[1] / "comfyui_restoration" / "schemas" / "external-sources.schema.json"
+    assert schema.exists()
+    assert json.loads(schema.read_text())["properties"]["sources"]["minItems"] == 3

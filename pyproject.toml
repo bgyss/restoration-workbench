@@ -1,7 +1,7 @@
 [project]
-name = "vhs-restoration"
+name = "comfyui-restoration-workbench"
 version = "0.1.0"
-description = "Reproducible tooling for conservative VHS capture restoration."
+description = "Local-first ComfyUI workbench for evidence-driven audio/video restoration."
 requires-python = ">=3.12,<3.13"
 dependencies = []
 
