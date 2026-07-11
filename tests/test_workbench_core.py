@@ -1,0 +1,38 @@
+import json
+from pathlib import Path
+
+import pytest
+
+from comfyui_restoration.core import workspace_path
+from comfyui_restoration.execution import Approval, ResumableRun, candidate_hash
+from comfyui_restoration.policy import validate_sample_window
+
+
+def test_workspace_rejects_traversal_and_symlink(tmp_path: Path):
+    root = tmp_path / "work"
+    root.mkdir()
+    with pytest.raises(ValueError):
+        workspace_path(Path("../outside.mkv"), root)
+    link = root / "link"
+    link.symlink_to(tmp_path)
+    with pytest.raises(ValueError):
+        workspace_path(link, root)
+
+
+def test_resumable_run_requires_matching_human_approval(tmp_path: Path):
+    params = {"branch": "faithful", "crf": 19}
+    run = ResumableRun(tmp_path, "one", params)
+    with pytest.raises(PermissionError):
+        run.execute(["a"], lambda _: "x")
+    approval = Approval(candidate_hash(params), "reviewer", ({"sample": "A", "decision": "approve"},))
+    state = run.execute(["a", "b"], lambda chunk: chunk + ".mkv", approval)
+    assert state["status"] == "complete"
+    assert json.loads((tmp_path / "runs/one/state.json").read_text())["completed"] == ["a", "b"]
+    resumed = run.execute(["a", "b", "c"], lambda chunk: chunk + ".mkv", approval)
+    assert resumed["completed"] == ["a", "b", "c"]
+
+
+def test_sample_window_is_bounded():
+    validate_sample_window(1, 2, 10)
+    with pytest.raises(ValueError):
+        validate_sample_window(9, 2, 10)

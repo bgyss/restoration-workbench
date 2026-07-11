@@ -9,6 +9,16 @@ The next-generation plan in
 extends that conservative baseline into a public ComfyUI audio/video restoration workbench with
 optional neural reconstruction, sample-gated long runs, and an MCP-ready agent interface.
 
+The initial installable package is `comfyui_restoration`. It provides file-backed typed artifacts,
+workspace/path safety, versioned run manifests, and thin ComfyUI nodes. Install or copy this
+checkout into `custom_nodes/`; the generic workflow in `examples/workflows/` is intentionally
+media-free. Optional neural adapters are not required for the conservative path.
+
+The package deliberately ships explicit bypass nodes while adapters are being evaluated. A stub
+branch cannot claim restoration, and full execution must remain downstream of a human approval
+artifact. See [`docs/upstream-evaluation.md`](docs/upstream-evaluation.md) for the current
+integration/licensing boundary.
+
 ## First use
 
 With Nix installed:

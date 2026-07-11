@@ -5,6 +5,13 @@ description = "Reproducible tooling for conservative VHS capture restoration."
 requires-python = ">=3.12,<3.13"
 dependencies = []
 
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["comfyui_restoration*"]
+
 [tool.uv]
 default-groups = ["dev"]
 
