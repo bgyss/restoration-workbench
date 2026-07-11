@@ -16,7 +16,8 @@
           deepFilterCli = pkgs.deepfilternet.overrideAttrs (_old: {
             pname = "deep-filter";
             buildAndTestSubdir = "libDF";
-            buildFeatures = [ "bin" "tract" "wav-utils" "transforms" ];
+            cargoBuildFeatures = "bin tract wav-utils transforms";
+            cargoCheckFeatures = "bin tract wav-utils transforms";
             postInstall = "";
           });
         in {
