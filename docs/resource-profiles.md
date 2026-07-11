@@ -13,3 +13,7 @@ work. Optional neural candidates are measured per adapter and are never silently
 The adapter boundary exists because model stacks can require incompatible Python/PyTorch/CUDA
 versions. Install each optional runner separately, record its version and model hash, and preserve
 the unchanged branch for comparison.
+
+The conservative default is 48 kHz end to end. Select 44.1 kHz explicitly only for adapters whose
+tested model boundary requires it, and record the integer sample-count compensation in the run
+manifest.

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import time
 from dataclasses import dataclass
@@ -18,6 +19,17 @@ class Approval:
     reviewer: str
     decisions: tuple[dict, ...]
     authority: str = "human"
+    signature_value: str | None = None
+
+    def signing_payload(self) -> bytes:
+        return json.dumps({"candidate_hash": self.candidate_hash, "reviewer": self.reviewer, "decisions": self.decisions, "authority": self.authority}, sort_keys=True, separators=(",", ":")).encode()
+
+    def signature(self, secret: bytes) -> str:
+        return hmac.new(secret, self.signing_payload(), hashlib.sha256).hexdigest()
+
+    def verify(self, secret: bytes, signature: str) -> None:
+        if not hmac.compare_digest(self.signature(secret), signature):
+            raise PermissionError("approval signature is invalid")
 
     def validate(self) -> None:
         if self.authority != "human" or not self.reviewer.strip() or not self.decisions:
@@ -75,5 +87,5 @@ class ResumableRun:
             self.state_path.write_text(json.dumps(state, indent=2) + "\n")
         state["status"] = "complete"
         self.state_path.write_text(json.dumps(state, indent=2) + "\n")
-        write_manifest(self.state_path.with_name("run-manifest.json"), RunManifest(self.run_id, state["status"], str(self.root), outputs=tuple(state.get("outputs", {}).values())))
+        write_manifest(self.state_path.with_name("run-manifest.json"), RunManifest(self.run_id, state["status"], str(self.root), outputs=tuple(state.get("outputs", {}).values()), parameters_hash=candidate_hash(self.parameters), events=tuple(state.get("events", [])), started_at=next((event["time"] for event in state.get("events", []) if event.get("event") == "started"), None), finished_at=time.time()))
         return state

@@ -1,6 +1,7 @@
 """Thin ComfyUI node adapters; media policy remains in :mod:`comfyui_restoration.core`."""
 
 from pathlib import Path
+import os
 from typing import Any
 
 from ..core import AudioArtifact, MediaSource, SamplePlan, VideoArtifact
@@ -117,7 +118,7 @@ class OptionalAudioModel:
 
     @classmethod
     def INPUT_TYPES(cls):
-        return {"required": {"adapter": (["deepfilternet", "voicefixer", "resemble_enhance", "demucs"],), "source": ("STRING",), "destination": ("STRING",), "mode": (["denoise", "enhance"],), "attenuation_db": ("FLOAT", {"default": 6.0, "min": 0, "max": 30}), "device": (["auto", "cpu", "cuda", "mps"],), "chunk_seconds": ("FLOAT", {"default": 30.0, "min": 1}), "overlap_seconds": ("FLOAT", {"default": 2.0, "min": 0}), "master_rate": ("INT", {"default": 48000, "min": 8000}), "model_rate": ("INT", {"default": 44100, "min": 8000}), "experimental_reconstruction": ("BOOLEAN", {"default": False}), "bypass": ("BOOLEAN", {"default": False})}}
+        return {"required": {"adapter": (["deepfilternet", "voicefixer", "resemble_enhance", "demucs"],), "source": ("STRING",), "destination": ("STRING",), "mode": (["denoise", "enhance"],), "attenuation_db": ("FLOAT", {"default": 6.0, "min": 0, "max": 30}), "device": (["auto", "cpu", "cuda", "mps"],), "chunk_seconds": ("FLOAT", {"default": 30.0, "min": 1}), "overlap_seconds": ("FLOAT", {"default": 2.0, "min": 0}), "master_rate": ("INT", {"default": 48000, "min": 8000}), "model_rate": ("INT", {"default": 48000, "min": 8000}), "experimental_reconstruction": ("BOOLEAN", {"default": False}), "bypass": ("BOOLEAN", {"default": False})}}
 
     def configure(self, adapter: str, source: str, destination: str, mode: str, attenuation_db: float, device: str, chunk_seconds: float, overlap_seconds: float, master_rate: int, model_rate: int, experimental_reconstruction: bool, bypass: bool):
         request = AudioModelRequest(adapter, Path(source), Path(destination), mode=mode, attenuation_db=attenuation_db, device=device, experimental_reconstruction=experimental_reconstruction, chunk_seconds=chunk_seconds, overlap_seconds=overlap_seconds, bypass=bypass, master_rate=master_rate, model_rate=model_rate)
@@ -277,14 +278,18 @@ class HumanApprovalGate:
 
     @classmethod
     def INPUT_TYPES(cls):
-        return {"required": {"parameters_json": ("STRING", {"default": "{}"}), "reviewer": ("STRING", {"default": "human"}), "decision_json": ("STRING", {"default": "[]"})}}
+        return {"required": {"parameters_json": ("STRING", {"default": "{}"}), "reviewer": ("STRING", {"default": "human"}), "decision_json": ("STRING", {"default": "[]"}), "signature": ("STRING", {"default": ""})}}
 
-    def approve(self, parameters_json: str, reviewer: str, decision_json: str):
+    def approve(self, parameters_json: str, reviewer: str, decision_json: str, signature: str):
         import json
         parameters = json.loads(parameters_json)
         decisions = tuple(json.loads(decision_json))
-        approval = Approval(candidate_hash(parameters), reviewer, decisions)
+        secret = os.environ.get("COMFYUI_RESTORATION_APPROVAL_SECRET")
+        if not secret:
+            raise PermissionError("host approval secret is not configured")
+        approval = Approval(candidate_hash(parameters), reviewer, decisions, signature_value=signature)
         approval.validate()
+        approval.verify(secret.encode(), signature)
         return (approval,)
 
 
@@ -299,6 +304,10 @@ class ResumableFullRun:
 
     def start(self, workspace: str, run_id: str, parameters_json: str, approval: Approval, chunks_json: str):
         import json
+        secret = os.environ.get("COMFYUI_RESTORATION_APPROVAL_SECRET")
+        if not secret or not approval.signature_value:
+            raise PermissionError("full execution requires a host-signed approval")
+        approval.verify(secret.encode(), approval.signature_value)
         parameters = json.loads(parameters_json)
         run = ResumableRun(Path(workspace), run_id, parameters)
         state = run.execute(json.loads(chunks_json), lambda chunk: str(Path("runs") / run_id / f"{chunk}.done"), approval)

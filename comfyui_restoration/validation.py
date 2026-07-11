@@ -25,9 +25,15 @@ def validate_invariants(source: dict[str, Any], output: dict[str, Any], *, durat
         for field in ("sample_rate", "channels"):
             if source_audio.get(field) != output_audio.get(field):
                 failures.append(f"audio {field} changed")
+        source_start = source_audio.get("start_time")
+        output_start = output_audio.get("start_time")
+        if source_start is not None and output_start is not None and abs(float(source_start) - float(output_start)) > duration_tolerance:
+            failures.append("audio timeline offset changed")
+    source_chapters, output_chapters = source.get("chapters", []), output.get("chapters", [])
+    if source_chapters and len(source_chapters) != len(output_chapters):
+        failures.append("chapter count changed")
     source_duration = float(source.get("format", {}).get("duration", 0) or 0)
     output_duration = float(output.get("format", {}).get("duration", 0) or 0)
     if source_duration and output_duration and abs(source_duration - output_duration) > duration_tolerance:
         failures.append("duration drift exceeds tolerance")
-    return {"valid": not failures, "failures": failures, "duration_drift_seconds": output_duration - source_duration, "source_duration": source_duration, "output_duration": output_duration}
-
+    return {"valid": not failures, "failures": failures, "duration_drift_seconds": output_duration - source_duration, "source_duration": source_duration, "output_duration": output_duration, "source_chapter_count": len(source_chapters), "output_chapter_count": len(output_chapters)}

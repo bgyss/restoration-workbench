@@ -20,7 +20,7 @@ class AudioModelRequest:
     overlap_seconds: float = 2.0
     bypass: bool = False
     master_rate: int = 48_000
-    model_rate: int = 44_100
+    model_rate: int = 48_000
 
     def validate(self) -> None:
         if self.adapter not in {"deepfilternet", "voicefixer", "resemble_enhance", "demucs"}:

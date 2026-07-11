@@ -28,11 +28,18 @@ def test_fixture_command_is_explicit():
 
 
 def test_service_approval_run_status_and_cancel(tmp_path: Path):
-    service = RestorationService(tmp_path)
+    service = RestorationService(tmp_path, approval_secret=b"test-secret")
     parameters = {"branch": "faithful"}
     approval = Approval(candidate_hash(parameters), "reviewer", ({"sample": "A", "decision": "approve"},))
-    state = service.run_approved_full_restoration("run", "r1", parameters, approval, ["A"])
+    signature = approval.signature(b"test-secret")
+    state = service.run_approved_full_restoration("run", "r1", parameters, approval, ["A"], signature)
     assert state["status"] == "complete"
     assert service.get_run_status("status", "r1")["status"] == "complete"
     with pytest.raises(ValueError):
         service.cancel_run("cancel", "r1")
+
+
+def test_service_cannot_forge_or_use_unsigned_approval(tmp_path: Path):
+    service = RestorationService(tmp_path, approval_secret=b"host-secret")
+    with pytest.raises(PermissionError):
+        service.record_human_approval("approval", {"branch": "faithful"}, "reviewer", [{"decision": "approve"}], "bad")

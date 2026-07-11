@@ -32,7 +32,7 @@ def run_command(args: Sequence[str], *, cwd: Path | None = None) -> subprocess.C
 
 
 def ffprobe(source: Path) -> dict[str, Any]:
-    result = run_command((tool_path("ffprobe"), "-hide_banner", "-v", "error", "-show_format", "-show_streams", "-of", "json", str(source)))
+    result = run_command((tool_path("ffprobe"), "-hide_banner", "-v", "error", "-show_format", "-show_streams", "-show_chapters", "-of", "json", str(source)))
     return json.loads(result.stdout)
 
 
@@ -55,4 +55,3 @@ def extract_audio(source: MediaSource, root: Path, output: Path, sample_rate: in
 
 def write_probe(source: MediaSource, root: Path, destination: Path) -> None:
     write_json(workspace_path(destination, root), source.probe)
-

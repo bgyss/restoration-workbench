@@ -102,6 +102,13 @@ class RunManifest:
     commands: tuple[dict[str, Any], ...] = ()
     outputs: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
+    workflow_hash: str | None = None
+    parameters_hash: str | None = None
+    environment: dict[str, Any] = field(default_factory=dict)
+    events: tuple[dict[str, Any], ...] = ()
+    metrics: dict[str, Any] = field(default_factory=dict)
+    started_at: float | None = None
+    finished_at: float | None = None
     schema_version: str = SCHEMA_VERSION
 
 

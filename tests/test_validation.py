@@ -17,3 +17,12 @@ def test_validation_rejects_geometry_and_audio_changes():
     assert result["valid"] is False
     assert "video width changed" in result["failures"]
     assert "audio channels changed" in result["failures"]
+
+
+def test_validation_rejects_chapter_loss():
+    source = _probe()
+    source["chapters"] = [{"id": 1}]
+    output = _probe()
+    result = validate_invariants(source, output)
+    assert result["valid"] is False
+    assert "chapter count changed" in result["failures"]

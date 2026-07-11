@@ -1,1 +1,1 @@
-{"1":{"class_type":"HumanApprovalGate","inputs":{"parameters_json":"{}","reviewer":"human","decision_json":"[]"}},"2":{"class_type":"ResumableFullRun","inputs":{"workspace":"work","run_id":"restoration-1","parameters_json":"{}","approval":["1",0],"chunks_json":"[\"sample-A\"]"}}}
+{"1":{"class_type":"HumanApprovalGate","inputs":{"parameters_json":"{}","reviewer":"human","decision_json":"[]","signature":""}},"2":{"class_type":"ResumableFullRun","inputs":{"workspace":"work","run_id":"restoration-1","parameters_json":"{}","approval":["1",0],"chunks_json":"[\"sample-A\"]"}}}

@@ -32,6 +32,8 @@
             mediainfo
             mise
             mkvtoolnix
+            python312Packages.pytest
+            ruff
             rustup
             sox
             uv

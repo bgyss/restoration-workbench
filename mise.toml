@@ -9,7 +9,11 @@ UV_CACHE_DIR = ".uv-cache"
 
 [tasks.sync]
 description = "Create or update the uv virtual environment"
-run = "uv sync"
+run = "uv sync --all-groups"
+
+[tasks.install-test-tools]
+description = "Install the pinned development test and lint tools into the uv environment"
+run = "uv sync --all-groups && uv run pytest --version && uv run ruff --version"
 
 [tasks.doctor]
 description = "Check the media and language toolchain"
@@ -32,6 +36,10 @@ run = [
   "uv run pytest -q",
   "if test -f Cargo.toml; then cargo fmt --all -- --check && cargo check --all-targets; else echo 'No Cargo.toml yet; Rust toolchain verified by doctor.'; fi",
 ]
+
+[tasks.check-lite]
+description = "Run deterministic checks without pytest or model downloads"
+run = "python scripts/check_lite.py"
 
 [tasks.test-workflows]
 description = "Validate checked-in UI/API workflow JSON"

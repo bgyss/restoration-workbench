@@ -14,7 +14,7 @@ SECRET_PATTERNS = (re.compile(r"(?:api[_-]?key|secret|token)\s*[:=]\s*['\"][^'\"
 
 def audit(root: Path) -> list[str]:
     failures: list[str] = []
-    ignored = {".git", ".venv", ".uv-cache", "__pycache__"}
+    ignored = {".git", ".venv", ".uv-cache", "__pycache__", "video", "work"}
     for path in root.rglob("*"):
         if not path.is_file() or any(part in ignored for part in path.parts):
             continue
