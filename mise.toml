@@ -32,3 +32,15 @@ run = [
   "uv run pytest -q",
   "if test -f Cargo.toml; then cargo fmt --all -- --check && cargo check --all-targets; else echo 'No Cargo.toml yet; Rust toolchain verified by doctor.'; fi",
 ]
+
+[tasks.test-workflows]
+description = "Validate checked-in UI/API workflow JSON"
+run = "python -c \"import json; from pathlib import Path; [json.loads(p.read_text()) for p in Path('examples/workflows').glob('*.json')]\""
+
+[tasks.test-e2e-small]
+description = "Run the tiny generated FFmpeg fixture through faithful branches"
+run = "python scripts/test_e2e_small.py"
+
+[tasks.audit-public]
+description = "Reject personal paths and checked-in source media references"
+run = "! rg -n '/Users/|/private/|/Applications/' --glob '!docs/prompts/**' --glob '!AGENTS.md' ."

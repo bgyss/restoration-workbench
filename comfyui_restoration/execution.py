@@ -42,6 +42,17 @@ class ResumableRun:
             return {"run_id": self.run_id, "status": "planned", "completed": [], "parameters": self.parameters}
         return json.loads(self.state_path.read_text())
 
+    def status(self) -> dict:
+        return self._state()
+
+    def cancel(self) -> dict:
+        state = self._state()
+        if state.get("status") == "complete":
+            raise ValueError("completed runs cannot be cancelled")
+        state["status"] = "cancelled"
+        self.state_path.write_text(json.dumps(state, indent=2) + "\n")
+        return state
+
     def execute(self, chunks: list[str], worker: Callable[[str], str], approval: Approval | None = None) -> dict:
         if approval is None:
             raise PermissionError("full execution requires a human approval artifact")
@@ -52,6 +63,8 @@ class ResumableRun:
         state["status"] = "running"
         state["approval"] = {"reviewer": approval.reviewer, "candidate_hash": approval.candidate_hash}
         for chunk in chunks:
+            if self._state().get("status") == "cancelled":
+                break
             if chunk in state["completed"]:
                 continue
             state.setdefault("events", []).append({"event": "started", "chunk": chunk, "time": time.time()})

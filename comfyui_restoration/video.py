@@ -1,0 +1,33 @@
+"""Faithful video lane: explicit, cadence-preserving FFmpeg commands."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from .media import tool_path
+from .chunking import VideoChunk
+
+
+def ensure_progressive(probe: dict) -> None:
+    video = next((item for item in probe.get("streams", []) if item.get("codec_type") == "video"), None)
+    if video and video.get("field_order") not in (None, "progressive", "unknown"):
+        raise ValueError("source may be interlaced; faithful lane refuses implicit deinterlacing")
+
+
+def baseline_command(source: Path, destination: Path, *, crf: int = 19) -> list[str]:
+    if not 16 <= crf <= 24:
+        raise ValueError("conservative CRF must be between 16 and 24")
+    return [tool_path("ffmpeg"), "-hide_banner", "-y", "-i", str(source), "-vf", "pp7=qp=2:mode=medium,hqdn3d=3:2:6:4", "-map", "0:v:0", "-c:v", "libx264", "-crf", str(crf), "-preset", "slow", "-pix_fmt", "yuv420p", "-an", str(destination)]
+
+
+def experimental_model_request(model: str, source: Path, destination: Path, *, strength: float = 0.1, seed: int = 0) -> dict:
+    if not model.strip() or not 0 <= strength <= 1:
+        raise ValueError("model and strength are required")
+    return {"lane": "experimental_reconstruction", "model": model, "source": str(source), "destination": str(destination), "strength": strength, "seed": seed, "warning": "generated detail is not recovered historical fact"}
+
+
+def stitch_qc(chunks: list[VideoChunk], *, expected_frames: int) -> dict:
+    if not chunks or chunks[0].start_frame != 0 or chunks[-1].end_frame != expected_frames:
+        raise ValueError("chunk plan does not cover the complete timeline")
+    gaps = [right.start_frame - left.end_frame for left, right in zip(chunks, chunks[1:])]
+    return {"expected_frames": expected_frames, "chunk_count": len(chunks), "timeline_covered": not any(gap != 0 for gap in gaps), "overlap_frames": [chunk.overlap_frames for chunk in chunks], "seam_checks": [{"left": left.index, "right": right.index, "status": "pending_human_qc"} for left, right in zip(chunks, chunks[1:])]}

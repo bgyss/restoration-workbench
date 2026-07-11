@@ -6,6 +6,7 @@ import pytest
 from comfyui_restoration.core import workspace_path
 from comfyui_restoration.execution import Approval, ResumableRun, candidate_hash
 from comfyui_restoration.policy import validate_sample_window
+from comfyui_restoration.remux import compare_streams
 
 
 def test_workspace_rejects_traversal_and_symlink(tmp_path: Path):
@@ -36,3 +37,9 @@ def test_sample_window_is_bounded():
     validate_sample_window(1, 2, 10)
     with pytest.raises(ValueError):
         validate_sample_window(9, 2, 10)
+
+
+def test_stream_comparison_reports_preservation_guardrail():
+    probe = {"format": {"duration": "10"}, "streams": [{"codec_type": "video"}, {"codec_type": "audio"}]}
+    result = compare_streams(probe, probe)
+    assert result["stream_count_preserved"] is True

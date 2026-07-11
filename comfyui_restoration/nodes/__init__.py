@@ -6,6 +6,17 @@ from typing import Any
 from ..core import MediaSource, SamplePlan
 from ..execution import Approval, ResumableRun, candidate_hash
 from ..media import extract_audio, ingest
+from ..audio import detect_clicks, repair_command
+from ..audio import guard_loudness_command
+from ..adapters.audio_models import AudioModelRequest, command as audio_model_command
+from ..review import build_review_bundle
+from ..video import baseline_command
+from ..chunking import audio_route_manifest, plan_video_chunks
+from ..video import stitch_qc
+from ..sampling import plan_samples as build_sample_plan
+from ..adapters.video_models import VideoModelRequest, request_manifest
+from ..remux import remux_command, validation_command
+from ..report import export_json
 
 
 class RestorationLoadMedia:
@@ -53,6 +64,168 @@ class ExtractLosslessAudio:
         return (" ".join(args),)
 
 
+class DetectAudioDefects:
+    CATEGORY = "Restoration/03 Audio"
+    RETURN_TYPES = ("JSON",)
+    FUNCTION = "detect"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"wav_path": ("STRING", {"default": "runs/audio-src.wav"})}}
+
+    def detect(self, wav_path: str):
+        return (detect_clicks(Path(wav_path)),)
+
+
+class RepairAudioDefects:
+    CATEGORY = "Restoration/03 Audio"
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "repair"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"source": ("STRING",), "destination": ("STRING",), "method": (["adeclick", "bypass"],)}}
+
+    def repair(self, source: str, destination: str, method: str):
+        return (" ".join(repair_command(Path(source), Path(destination), method=method)),)
+
+
+class AudioEQLoudnessGuard:
+    CATEGORY = "Restoration/03 Audio"
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "guard"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"source": ("STRING",), "destination": ("STRING",), "true_peak": ("FLOAT", {"default": -1.0, "max": 0})}}
+
+    def guard(self, source: str, destination: str, true_peak: float):
+        return (" ".join(guard_loudness_command(Path(source), Path(destination), true_peak=true_peak)),)
+
+
+class OptionalAudioModel:
+    CATEGORY = "Restoration/03 Audio/Experimental"
+    RETURN_TYPES = ("JSON",)
+    FUNCTION = "configure"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"adapter": (["deepfilternet", "voicefixer", "resemble_enhance", "demucs"],), "source": ("STRING",), "destination": ("STRING",), "mode": (["denoise", "enhance"],), "experimental_reconstruction": ("BOOLEAN", {"default": False})}}
+
+    def configure(self, adapter: str, source: str, destination: str, mode: str, experimental_reconstruction: bool):
+        request = AudioModelRequest(adapter, Path(source), Path(destination), mode=mode, experimental_reconstruction=experimental_reconstruction)
+        return ({"request": request.__dict__, "command": audio_model_command(request) if adapter in {"deepfilternet", "demucs"} else None},)
+
+
+class VideoBaselineRestore:
+    CATEGORY = "Restoration/04 Video"
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "restore"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"source": ("STRING",), "destination": ("STRING",), "crf": ("INT", {"default": 19, "min": 16, "max": 24})}}
+
+    def restore(self, source: str, destination: str, crf: int):
+        return (" ".join(baseline_command(Path(source), Path(destination), crf=crf)),)
+
+
+class CompareCandidates:
+    CATEGORY = "Restoration/05 Review"
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "compare"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"workspace": ("STRING",), "source": ("STRING",), "candidates_json": ("STRING",)}}
+
+    def compare(self, workspace: str, source: str, candidates_json: str):
+        import json
+        return (str(build_review_bundle(Path(workspace), source=source, candidates=json.loads(candidates_json))),)
+
+
+class AudioSegmentRouter:
+    CATEGORY = "Restoration/03 Audio"
+    RETURN_TYPES = ("JSON",)
+    FUNCTION = "route"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"total_samples": ("INT", {"min": 1}), "speech_regions_json": ("STRING", {"default": "[]"})}}
+
+    def route(self, total_samples: int, speech_regions_json: str):
+        import json
+        return (audio_route_manifest(total_samples, json.loads(speech_regions_json)),)
+
+
+class VideoChunkPlannerStitcher:
+    CATEGORY = "Restoration/04 Video"
+    RETURN_TYPES = ("JSON",)
+    FUNCTION = "plan"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"total_frames": ("INT", {"min": 1}), "chunk_frames": ("INT", {"default": 150, "min": 1}), "overlap_frames": ("INT", {"default": 12, "min": 0}), "scene_cuts_json": ("STRING", {"default": "[]"})}}
+
+    def plan(self, total_frames: int, chunk_frames: int, overlap_frames: int, scene_cuts_json: str):
+        import json
+        chunks = plan_video_chunks(total_frames, chunk_frames=chunk_frames, overlap_frames=overlap_frames, scene_cuts=json.loads(scene_cuts_json))
+        return ({"chunks": [chunk.__dict__ for chunk in chunks], "qc": stitch_qc(chunks, expected_frames=total_frames)},)
+
+
+class VideoModelAdapter:
+    CATEGORY = "Restoration/04 Video"
+    RETURN_TYPES = ("JSON",)
+    FUNCTION = "configure"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"backend": ("STRING",), "source": ("STRING",), "destination": ("STRING",), "model_hash": ("STRING",), "scale": ("INT", {"default": 1, "min": 1}), "temporal_window": ("INT", {"default": 5, "min": 1}), "strength": ("FLOAT", {"default": 0.1, "min": 0, "max": 1}), "seed": ("INT", {"default": 0})}}
+
+    def configure(self, backend: str, source: str, destination: str, model_hash: str, scale: int, temporal_window: int, strength: float, seed: int):
+        return (request_manifest(VideoModelRequest(backend, Path(source), Path(destination), model_hash, scale, temporal_window, strength, seed)),)
+
+
+class PreservationAwareRemux:
+    CATEGORY = "Restoration/07 Output"
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "build"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"source": ("STRING",), "video": ("STRING",), "audio": ("STRING",), "destination": ("STRING",), "delay_ms": ("INT", {"default": 0})}}
+
+    def build(self, source: str, video: str, audio: str, destination: str, delay_ms: int):
+        return (" ".join(remux_command(Path(source), Path(video), Path(audio), Path(destination), delay_ms=delay_ms)),)
+
+
+class ValidateRestoration:
+    CATEGORY = "Restoration/07 Output"
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "validate"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"output": ("STRING",)}}
+
+    def validate(self, output: str):
+        return (" ".join(validation_command(Path(output))),)
+
+
+class ExportReviewReport:
+    CATEGORY = "Restoration/06 Review"
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "export"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"source_json": ("STRING",), "destination": ("STRING",), "workspace": ("STRING",)}}
+
+    def export(self, source_json: str, destination: str, workspace: str):
+        export_json(Path(source_json), Path(destination), Path(workspace))
+        return (destination,)
+
+
 class PlanRepresentativeSamples:
     CATEGORY = "Restoration/02 Planning"
     RETURN_TYPES = ("RESTORATION_SAMPLE_PLAN",)
@@ -63,8 +236,7 @@ class PlanRepresentativeSamples:
         return {"required": {"duration_seconds": ("FLOAT", {"default": 60.0, "min": 1.0}), "seed": ("INT", {"default": 0})}}
 
     def plan(self, duration_seconds: float, seed: int):
-        points = [0.01, 0.5, 0.9]
-        samples = tuple({"start": max(0.0, duration_seconds * p), "duration": min(60.0, duration_seconds)} for p in points)
+        samples = tuple(build_sample_plan(duration_seconds))
         return (SamplePlan(samples=samples, seed=seed),)
 
 
@@ -117,19 +289,5 @@ class ResumableFullRun:
         return (state,)
 
 
-_CAPABILITIES = (
-    "DetectAudioDefects", "RepairAudioDefects",
-    "DeepFilterNetAudio", "VoiceFixerAudio", "ResembleEnhanceAudio", "DemucsSeparateRecombine",
-    "AudioSegmentRouter", "AudioEQLoudnessGuard", "VideoBaselineRestore", "VideoModelAdapter",
-    "VideoChunkPlannerStitcher", "CompareCandidates", "HumanApprovalGate", "ResumableFullRun",
-    "PreservationAwareRemux", "ValidateRestoration", "ExportReviewReport",
-)
-
-
-def _make_stub(name: str):
-    return type(name, (RestorationPassThrough,), {"CATEGORY": "Restoration/" + name})
-
-
-NODE_CLASS_MAPPINGS = {"RestorationLoadMedia": RestorationLoadMedia, "AnalyzeSource": AnalyzeSource, "ExtractLosslessAudio": ExtractLosslessAudio, "PlanRepresentativeSamples": PlanRepresentativeSamples, "HumanApprovalGate": HumanApprovalGate, "ResumableFullRun": ResumableFullRun}
-NODE_CLASS_MAPPINGS.update({name: _make_stub(name) for name in _CAPABILITIES})
+NODE_CLASS_MAPPINGS = {"RestorationLoadMedia": RestorationLoadMedia, "AnalyzeSource": AnalyzeSource, "ExtractLosslessAudio": ExtractLosslessAudio, "DetectAudioDefects": DetectAudioDefects, "RepairAudioDefects": RepairAudioDefects, "AudioEQLoudnessGuard": AudioEQLoudnessGuard, "DeepFilterNetAudio": OptionalAudioModel, "VoiceFixerAudio": OptionalAudioModel, "ResembleEnhanceAudio": OptionalAudioModel, "DemucsSeparateRecombine": OptionalAudioModel, "PlanRepresentativeSamples": PlanRepresentativeSamples, "VideoBaselineRestore": VideoBaselineRestore, "CompareCandidates": CompareCandidates, "AudioSegmentRouter": AudioSegmentRouter, "VideoChunkPlannerStitcher": VideoChunkPlannerStitcher, "VideoModelAdapter": VideoModelAdapter, "PreservationAwareRemux": PreservationAwareRemux, "ValidateRestoration": ValidateRestoration, "ExportReviewReport": ExportReviewReport, "HumanApprovalGate": HumanApprovalGate, "ResumableFullRun": ResumableFullRun}
 NODE_DISPLAY_NAME_MAPPINGS = {key: "Restoration " + key.removeprefix("Restoration").replace("Audio", " Audio") for key in NODE_CLASS_MAPPINGS}
