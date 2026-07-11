@@ -10,3 +10,9 @@ __pycache__/
 *.flac
 *.onnx
 *.safetensors
+.mise-cache/
+.mise-state/
+.nix-cache/
+.DS_Store
+*.egg-info/
+uv.lock

@@ -1,7 +1,7 @@
-# Garden sample review runbook
+# Local sample review runbook
 
-The local Garden capture is never copied into Git. The current sample evidence lives under the
-ignored `work/garden-probe/` directory:
+The local source capture is never copied into Git. Keep current sample evidence under an ignored
+work directory, for example `work/local-review/`:
 
 1. Review `review/sample-{A,B,C}-frame.png` for geometry, bars, motion, texture, faces, text, and
    scene boundaries.
@@ -16,8 +16,8 @@ ignored `work/garden-probe/` directory:
 6. After review, use the resumable full workflow with a storage/time estimate. Preserve the
    faithful master even if an experimental derivative is selected.
 
-The current candidate manifest remains `pending_human_review`; no full Garden run is authorized by
-the repository automation.
+The current candidate manifest remains `pending_human_review`; repository automation does not
+authorize a full run automatically.
 
 ## Stretch goal: production approval workflow
 

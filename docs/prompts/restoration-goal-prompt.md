@@ -4,14 +4,12 @@
 
 Restore the audio and video of a digitized VHS capture, producing a cleaned MKV that is noticeably more watchable than the source without introducing restoration artifacts (waxiness, smearing, over-suppressed ambience). Prioritize "cleaner and faithful" over "remastered." When in doubt, be conservative.
 
-## Source file facts (verified, do not re-derive)
+## Source file facts
 
-- File: `The Garden (Wiseman, 2005).mkv`
-- Container: Matroska. Integrity verified: a full `ffmpeg -v error` decode pass produced no errors. Ignore the mediainfo header-size conformance warning; the stream is complete and decodable.
-- Video: H.264 (x264 core 135, 2014 encode), 720x544, 4:3 DAR, 25.000 fps constant, progressive (`interlaced=0`), 8-bit 4:2:0, CRF 23. Duration 3h18m (~297,000 frames).
-- Audio: AAC LC stereo, 48 kHz, lossy. Delay relative to video: -21 ms. This delay MUST be preserved in the final remux.
-- Chapters: 27 chapter marks present. These MUST be carried into the final output.
-- Noise profile (per human review): consistent analog tape hiss throughout, pops/clicks in audio, worse in roughly the first chapter. Video carries tape noise smeared through a generation of lossy H.264 compression: expect grain remnants plus blocking and ringing.
+Derive these facts from the user-supplied input with `ffprobe` and record them in the run manifest.
+Do not hard-code a title, codec, duration, geometry, delay, chapter count, or noise profile from a
+different capture. Preserve the measured audio offset, chapters, display geometry, cadence, and
+color metadata for the selected input.
 
 ## Hard constraints
 
@@ -36,16 +34,16 @@ If a preferred tool cannot be installed, fall back gracefully and note the subst
 ## Phase 1: Verification and baseline
 
 1. Confirm stream properties match the facts above (`ffprobe`).
-2. Combing sanity check: extract 10-15 single frames from moments of fast motion (sample across chapters) and inspect for interlace combing. Expected result: none. If combing IS found, STOP and report; the pipeline design changes.
+2. Combing sanity check: extract 10-15 single frames from moments of fast motion across the input and inspect for interlace combing. If combing IS found, STOP and report; the pipeline design changes.
 3. Extract audio to `audio_src.wav` (pcm_s16le, 48 kHz, stereo).
 4. Capture baseline metrics for later comparison: audio loudness stats (`ffmpeg -af astats,ebur128`), and 6 reference PNG frame grabs at fixed timestamps (one in chapter 1 where noise is worst, plus five spread across the runtime). Save all baselines to `baseline/`.
 
 ## Phase 2: Sample extraction (the test bed)
 
-Extract three sample clips, 60 seconds each, video+audio:
-- Sample A: from chapter 1 (worst noise region)
-- Sample B: from mid-film (~1h39m)
-- Sample C: from late film (~3h00m)
+Extract three representative sample clips, 60 seconds each, video+audio:
+- Sample A: early runtime or a high-defect region
+- Sample B: middle runtime
+- Sample C: late runtime
 
 All filter tuning happens on these samples. A filter chain graduates to the full run only after passing Phase 3 and Phase 4 checks on ALL THREE samples.
 
@@ -54,8 +52,8 @@ All filter tuning happens on these samples. A filter chain graduates to the full
 Pipeline order: declick first, then dehiss.
 
 1. Pop/click removal: `ffmpeg -af adeclick` (default settings first; tighten only if pops survive). Verify pops are reduced by comparing before/after waveform peak counts around transients and by generating spectrograms (`ffmpeg -lavfi showspectrumpic`) for visual diffing.
-2. Hiss removal: run DeepFilterNet on the declicked WAV. IMPORTANT check: DeepFilterNet is speech-tuned. This is a Wiseman documentary (vérité dialogue plus meaningful ambient/location sound). Verify on all three samples that ambience is not gutted. Acceptance heuristic: noise floor in silent passages should drop substantially, but room tone and environmental sound during dialogue must remain audible and natural. If DeepFilterNet over-suppresses, retry with reduced attenuation (its attenuation limit flag), or fall back to sox `noisered` with a hiss profile taken from a quiet passage in chapter 1, at conservative strength (0.15-0.25).
-3. Because the first chapter is worse: it is acceptable to apply a stronger dehiss setting to the first ~7 minutes and a lighter one to the remainder, then crossfade-join. Only do this if a single global setting fails the sample review; prefer one global setting for simplicity.
+2. Hiss removal: run DeepFilterNet on the declicked WAV. It is speech-tuned, so verify on all three samples that meaningful ambience, room tone, and environmental sound remain audible and natural. If it over-suppresses, retry with reduced attenuation or fall back to SoX `noisered` with a profile taken from a quiet passage, at conservative strength (0.15-0.25).
+3. If defect severity varies across the input, a stronger setting for a short problem region and a lighter setting elsewhere is acceptable, but prefer one global setting for simplicity.
 4. Loudness: do NOT loudness-normalize creatively. Match the original program loudness within +/- 1 LU (compare ebur128 integrated loudness before/after).
 5. Full-run output: `audio_clean.wav`, then encode to AAC 192k as `audio_clean.m4a`.
 
@@ -81,9 +79,9 @@ Given ~297k frames, log encode FPS on Sample A and report a projected full-run w
 
 ## Phase 5: Remux and final QC
 
-1. Mux cleaned video + cleaned audio into `The Garden (Wiseman, 2005) [restored].mkv` with:
-   - The -21 ms audio delay applied (verify with `mediainfo` on the output)
-   - All 27 chapters copied from the source (extract with `mkvextract chapters` or ffmpeg, re-attach in mux)
+1. Mux cleaned video + cleaned audio into `restored.mkv` with:
+   - The measured source audio delay applied (verify with `mediainfo` on the output)
+   - All source chapters copied from the input (extract with `mkvextract chapters` or ffmpeg, re-attach in mux)
 2. Duration check: output duration must match source within 100 ms.
 3. Sync spot-check: extract 5-second A/V clips at chapter 1, chapter 14, and chapter 27 from the output and confirm no audible/visible desync drift.
 4. Full-file decode check on the output: `ffmpeg -v error -i output.mkv -f null -` must produce zero errors.
@@ -91,7 +89,7 @@ Given ~297k frames, log encode FPS on Sample A and report a projected full-run w
 
 ## Deliverables
 
-1. `The Garden (Wiseman, 2005) [restored].mkv`
+1. `restored.mkv`
 2. `review/` directory: sample clips (before/after), comparison frames, spectrograms
 3. `RESTORATION_REPORT.md` containing: exact tool versions, the final filter chains and settings used (full VapourSynth script and ffmpeg command lines, reproducible verbatim), all metric results (SSIM/VMAF per sample, loudness before/after), any fallbacks or deviations taken and why, and known remaining defects
 

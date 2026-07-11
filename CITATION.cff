@@ -4,7 +4,7 @@ message: "If this work helps your research or restoration workflow, please cite 
 type: software
 authors:
   - family-names: Contributors
-    given-names: VHS Restoration
+    given-names: Restoration Workbench
 license: MIT
 version: 0.1.0
 repository-code: https://github.com/bgyss/restoration-workbench

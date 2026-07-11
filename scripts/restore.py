@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Conservative, sample-first VHS restoration runner."""
+"""Conservative, sample-first Restoration Workbench runner."""
 
 from __future__ import annotations
 
@@ -218,7 +218,7 @@ def remux_and_qc(r: Runner, source_data: dict) -> None:
         r.run(("mkvextract", str(r.source), "chapters", str(chapters)))
     else:
         r.ffmpeg("-i", str(r.source), "-f", "ffmetadata", str(chapters))
-    final = r.workdir / "output" / "The Garden (Wiseman, 2005) [restored].mkv"
+    final = r.workdir / "output" / "restored.mkv"
     if shutil.which("mkvmerge"):
         r.run(("mkvmerge", "-o", str(final), "--chapters", str(chapters), str(r.workdir / "output" / "video_clean.mkv"), "--sync", "0:-21", str(r.workdir / "audio_clean.m4a")))
     else:
@@ -324,7 +324,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     full_encode(runner)
     remux_and_qc(runner, source_data)
     write_report(runner, method, projection, True)
-    print(runner.workdir / "output" / "The Garden (Wiseman, 2005) [restored].mkv")
+    print(runner.workdir / "output" / "restored.mkv")
     return 0
 
 

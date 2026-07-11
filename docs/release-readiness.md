@@ -14,7 +14,7 @@ verified work from the remaining release validation.
 - install into a pinned ComfyUI checkout with its host dependencies (including `torch`) and execute both API and UI workflows;
 - record real adapter versions/model hashes and licenses in `docs/upstream-evaluation.md`;
 - review `THIRD_PARTY_NOTICES.md` and add/update notices for every bundled or optional component;
-- run the Garden sample gate only with the user-owned capture available and retain outputs outside Git;
+- run the sample gate only with the user-owned capture available and retain outputs outside Git;
 - complete the public fixture rights review and anonymous clone/install test;
 - obtain explicit confirmation immediately before GitHub or Registry publication.
 

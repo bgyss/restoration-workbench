@@ -1,5 +1,5 @@
 {
-  description = "VHS restoration toolchain";
+  description = "Restoration Workbench toolchain";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
@@ -44,7 +44,7 @@
             export UV_CACHE_DIR="''${UV_CACHE_DIR:-.uv-cache}"
             export RUST_BACKTRACE="''${RUST_BACKTRACE:-1}"
             export LADSPA_PATH="${pkgs.deepfilternet}/lib/ladspa''${LADSPA_PATH:+:$LADSPA_PATH}"
-            echo "VHS restoration shell: run 'mise run doctor' to verify tools."
+            echo "Restoration Workbench shell: run 'mise run doctor' to verify tools."
           '';
           };
       });

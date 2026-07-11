@@ -6,8 +6,8 @@ fixture with `comfyui_restoration.benchmark.fixture_command`, then record the so
 candidate parameters/model hashes, commands, metrics, and review decision in the run manifest.
 
 Synthetic signals validate timeline, clipping, click-location, channel, cadence, and resource
-invariants; they do not establish that a model improves documentary footage. Garden and any public
-source require separate rights and human-review records before derived media is retained or shared.
+invariants; they do not establish that a model improves real footage. Any external source requires
+separate rights and human-review records before derived media is retained or shared.
 
 `plan_audio_candidates(["A", "B", "C"])` expands the required per-sample matrix, including the
 untouched baseline, both click/DeepFilterNet orders, routed speech candidates, and a deferred

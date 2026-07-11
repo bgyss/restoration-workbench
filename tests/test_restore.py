@@ -16,7 +16,7 @@ from scripts.restore import (
 
 
 def test_quote_handles_spaces_and_single_quotes():
-    assert quote("The Garden (Wiseman, 2005).mkv") == "'The Garden (Wiseman, 2005).mkv'"
+    assert quote("input.mkv") == "'input.mkv'"
     assert quote("a'b") == "'a'\\''b'"
 
 

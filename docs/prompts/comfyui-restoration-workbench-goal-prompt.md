@@ -15,10 +15,9 @@ existing source-preservation, sample-review, sync, chapter, aspect-ratio, or ful
 Where generative restoration conflicts with fidelity, preserve both choices as explicit graph
 branches and make the conservative result the default.
 
-The first integration target is the ignored local capture at
-`video/The Garden (Wiseman, 2005).mkv`. The repository and example workflow must remain useful
-when a different video is supplied, and no source or restored copyrighted media may be committed
-or published.
+The first integration target is an ignored local capture supplied by the user at
+`video/input.mkv`. The repository and example workflow must remain useful when a different video
+is supplied, and no source or restored copyrighted media may be committed or published.
 
 ## Product principles
 
@@ -45,18 +44,12 @@ or published.
    and compare candidates, but may not overwrite inputs, approve subjective QC, publish media, or
    start an unapproved full run.
 
-## Known first-source facts
+## First-source facts
 
-For the local Garden capture, inherit the verified facts from the existing goal prompt:
-
-- Matroska container; H.264 video at 720x544, 4:3 DAR, 25 fps, progressive.
-- AAC LC stereo at 48 kHz with a -21 ms audio delay.
-- Approximately 3h18m duration and 27 chapters.
-- Worse hiss and clicks near the beginning; meaningful dialogue and ambient/location sound.
-
-Do not hard-code these facts as universal assumptions. A replacement input must be probed and its
-own restoration plan derived. In particular, do not deinterlace the Garden capture, but detect and
-properly handle genuinely interlaced material in other inputs.
+Probe the local input and record its actual container, streams, geometry, cadence, audio offset,
+chapters, and defect profile. Do not hard-code facts from one capture as universal assumptions. A
+replacement input must be probed and its own restoration plan derived; detect and properly handle
+genuinely interlaced material instead of applying a fixed deinterlacing decision.
 
 ## Initial technical hypothesis, to be tested rather than assumed
 
@@ -210,7 +203,7 @@ Names may improve during implementation, but the public capability set must incl
    loudness, noise profile, channel correlation, speech/music/activity regions, and likely clicks.
 3. **Plan Representative Samples** — combines chapter boundaries, early/middle/late coverage,
    defect severity, speech, ambience/music, silence, motion, faces, and scene cuts. Allow manual
-   additions. For Garden, include the established early, middle, and late samples.
+   additions. Include representative early, middle, and late samples for the supplied input.
 4. **Extract Lossless Audio** — writes PCM WAV at the declared master rate (48 kHz default), keeps
    the original timeline offset in metadata, and records exact extraction commands.
 5. **Detect Audio Defects** — emits timestamped click/pop/discontinuity candidates with confidence,
@@ -293,7 +286,7 @@ Use metrics as guardrails, not as automatic truth. Include:
 
 - integrated/short-term loudness, loudness range, true peak, clipping count, DC offset, and noise
   floor estimates;
-- click detector precision/recall on a small human-labeled Garden set and synthetic known-location
+- click detector precision/recall on a small human-labeled source set and synthetic known-location
   click fixtures;
 - speech intelligibility/quality metrics when their licenses and assumptions fit, clearly labeled;
 - residual-to-source plots, stereo correlation, and spectral balance;
@@ -312,8 +305,8 @@ Maintain two visibly separate lanes:
 ### Faithful lane (default)
 
 - Analyze before filtering; detect true field structure per source.
-- For Garden, preserve 720x544, 4:3, 25 fps progressive output unless a separately reviewed
-  delivery derivative is requested.
+- Preserve the measured source geometry and cadence unless a separately reviewed delivery
+  derivative is requested.
 - Benchmark conservative FFmpeg/VapourSynth or maintained equivalents for light deblocking,
   temporal/chroma noise reduction, ringing control, legal/full-range correction, and restrained
   color balance.
@@ -350,8 +343,8 @@ documentary record fails regardless of aesthetic appeal.
 
 Ship both ComfyUI UI-format and API-format JSON if current ComfyUI tooling requires both:
 
-- `examples/workflows/garden_restoration_review.json`: configured for a user-supplied local file
-  named `The Garden (Wiseman, 2005).mkv`, but containing no bundled media or personal absolute path.
+- `examples/workflows/local_restoration_review.json`: configured for a user-supplied local file
+  named `input.mkv`, but containing no bundled media or personal absolute path.
 - `examples/workflows/generic_restoration_review.json`: same graph with a neutral replaceable input.
 - `examples/workflows/generic_restoration_full.json`: consumes a recorded visual-review artifact
   from the review workflow and performs the resumable full run.
@@ -367,12 +360,12 @@ names and a small manifest-driven command/API layer that maps those names to the
 
 ## Testing on local and public material
 
-### Garden acceptance corpus
+### Representative acceptance corpus
 
-Use the existing local video without committing it. Build a defect annotation set and sample suite
+Use the supplied local video without committing it. Build a defect annotation set and sample suite
 covering:
 
-- the noisy first chapter;
+- the highest-defect early region;
 - clean and difficult dialogue;
 - ambience and any music;
 - silence/low-level room tone;
@@ -380,8 +373,8 @@ covering:
 - early, middle, and late runtime for sync drift;
 - low/high motion, faces, fine texture, text, and scene transitions.
 
-Retain the existing approximate early/middle/late 60-second samples for regression continuity, but
-allow the analyzer to add shorter high-information clips.
+Retain representative early/middle/late 60-second samples for regression continuity, but allow the
+analyzer to add shorter high-information clips.
 
 ### Public and synthetic corpus
 
@@ -479,8 +472,8 @@ Before publishing:
 9. If ComfyUI Registry publication is desired and credentials are available, validate the package
    first and request a final human confirmation immediately before registry publication.
 
-The example Garden workflow may name the expected local input but must not contain the Garden
-capture, extracted frames/audio, hashes that expose private provenance unnecessarily, or outputs.
+The example workflow may name the expected local input but must not contain the capture, extracted
+frames/audio, hashes that expose private provenance unnecessarily, or outputs.
 
 ## Implementation phases
 
@@ -503,7 +496,7 @@ capture, extracted frames/audio, hashes that expose private provenance unnecessa
 
 - Implement analysis, defect detection/repair, model adapters, routing, chunking, EQ/loudness,
   comparisons, and evaluation.
-- Benchmark the candidate matrix on Garden samples and synthetic/public fixtures.
+- Benchmark the candidate matrix on representative samples and synthetic/public fixtures.
 - Select conservative defaults from evidence. Keep experimental reconstruction opt-in.
 
 ### Phase 3 — Video workbench
@@ -519,7 +512,7 @@ capture, extracted frames/audio, hashes that expose private provenance unnecessa
 - Test UI-format/API-format round trips and headless workflow execution against a pinned compatible
   ComfyUI version.
 
-### Phase 5 — Human review and full Garden run
+### Phase 5 — Human review and full local run
 
 - Produce sample review bundles with randomized/level-matched comparisons.
 - Pause for explicit human selection of audio and video candidates.
@@ -583,10 +576,10 @@ For each real sample/full run, capture:
 3. Audio adapters for DeepFilterNet, VoiceFixer, Resemble Enhance, optional Essentia and Demucs,
    plus deterministic fallbacks.
 4. Faithful and experimental video restoration adapters with temporal/chunk QC.
-5. Garden and generic review/full workflow JSON files, valid in UI and API execution modes.
+5. Generic review/full workflow JSON files, valid in UI and API execution modes.
 6. Automated unit, schema, security, workflow, and tiny end-to-end tests.
 7. Public/synthetic benchmark manifests and a source-backed evaluation report.
-8. Garden sample review bundle and, only after human visual review, a local full restored output and
+8. A sample review bundle and, only after human visual review, a local full restored output and
    restoration report.
 9. MCP/agent tool contract, threat model, fake-client tests, and gated demonstration.
 10. Public GitHub repository with clean anonymous installation and an initial tagged release.
@@ -595,16 +588,16 @@ For each real sample/full run, capture:
 
 - A new user can install the package into a supported ComfyUI setup, load the generic workflow,
   swap in a legally held video, and complete the sample-review flow from the documentation.
-- The local Garden workflow probes the actual file, preserves its 4:3 geometry, 25 fps cadence,
-  chapters, and -21 ms audio offset, and produces an approved full result that passes decode and
-  sync checks without publishing the media.
+- The local workflow probes the actual file, preserves its measured geometry, cadence, chapters,
+  and audio offset, and produces a reviewed full result that passes decode and sync checks without
+  publishing the media.
 - Audio branches demonstrably reduce clicks/hiss or improve degraded speech while preserving words,
   speaker identity, ambience, stereo behavior, sample count, sync, and loudness guardrails.
 - Video faithful output reduces diagnosed artifacts without accidental deinterlacing, waxiness,
   ghosting, cadence errors, or metadata loss; generative output is separate, labeled, and provenance
   recorded.
 - Long runs are cancellable, restartable, bounded, and do not require keeping full media in memory.
-- Replacing the input does not depend on Garden-specific constants; interlaced and music-heavy test
+- Replacing the input does not depend on source-specific constants; interlaced and music-heavy test
   sources exercise alternate paths.
 - CI is green, public audit finds no private/source media or personal paths, third-party licensing is
   documented, and anonymous clone/install succeeds.
@@ -626,7 +619,7 @@ Pause and request human direction when:
   unreviewed executable code, download from an unapproved origin, or weaken the path-safety boundary;
 - GitHub repository ownership/name is ambiguous, a remote already exists with unrelated history, or
   publication would require rewriting history;
-- the Garden capture or any derived media is about to be committed, uploaded, or published.
+- a supplied capture or any derived media is about to be committed, uploaded, or published.
 
 ## Starting references
 

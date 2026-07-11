@@ -1,4 +1,4 @@
-# VHS restoration environment
+# Restoration Workbench
 
 This repository contains the reproducible environment for the pipeline in
 [`docs/prompts/restoration-goal-prompt.md`](docs/prompts/restoration-goal-prompt.md).
@@ -66,13 +66,13 @@ sample comparisons have been reviewed:
 
 ```sh
 python scripts/restore.py \
-  --source "/path/to/The Garden (Wiseman, 2005).mkv" \
-  --workdir "/path/to/garden-restoration"
+  --source "/path/to/input.mkv" \
+  --workdir "/path/to/restoration-run"
 
 # After reviewing baseline/combing-check-* and review/sample-* assets:
 python scripts/restore.py \
-  --source "/path/to/The Garden (Wiseman, 2005).mkv" \
-  --workdir "/path/to/garden-restoration" \
+  --source "/path/to/input.mkv" \
+  --workdir "/path/to/restoration-run" \
   --approve-samples --full
 ```
 
