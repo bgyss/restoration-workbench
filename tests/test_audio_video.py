@@ -37,6 +37,10 @@ def test_video_lane_refuses_interlaced_and_labels_generation():
     with pytest.raises(ValueError):
         from comfyui_restoration.video import baseline_command
         baseline_command(Path("same"), Path("same"))
+    from comfyui_restoration.video import baseline_command
+    assert "crop=iw:iw*3/4" in " ".join(baseline_command(Path("a"), Path("b"), target_aspect="4:3"))
+    with pytest.raises(ValueError):
+        baseline_command(Path("a"), Path("b"), target_aspect="2:1")
 
 
 def test_neural_enhancement_requires_explicit_experimental_label():

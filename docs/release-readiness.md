@@ -13,3 +13,6 @@ This checkout is prepared for review but is not a release claim. Before publicat
 - obtain explicit confirmation immediately before GitHub or Registry publication.
 
 No source media, model weights, personal paths, or generated review assets belong in this repository.
+
+The production-grade identity-backed approval/attestation workflow is a stretch goal. The current
+local HMAC gate is retained for the sample-first milestone only.

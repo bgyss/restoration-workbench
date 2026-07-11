@@ -132,10 +132,10 @@ class VideoBaselineRestore:
 
     @classmethod
     def INPUT_TYPES(cls):
-        return {"required": {"source": ("STRING",), "destination": ("STRING",), "crf": ("INT", {"default": 19, "min": 16, "max": 24})}}
+        return {"required": {"source": ("STRING",), "destination": ("STRING",), "crf": ("INT", {"default": 19, "min": 16, "max": 24}), "target_aspect": (["preserve", "4:3", "16:9", "1:1"],)}}
 
-    def restore(self, source: str, destination: str, crf: int):
-        run_command(baseline_command(Path(source), Path(destination), crf=crf))
+    def restore(self, source: str, destination: str, crf: int, target_aspect: str):
+        run_command(baseline_command(Path(source), Path(destination), crf=crf, target_aspect=target_aspect))
         probe = ffprobe(Path(destination))
         stream = next(item for item in probe.get("streams", []) if item.get("codec_type") == "video")
         return (VideoArtifact(destination, int(stream.get("width", 0)), int(stream.get("height", 0)), int(stream.get("nb_frames", 0) or 0), str(stream.get("r_frame_rate", "")), stream.get("sample_aspect_ratio"), stream.get("display_aspect_ratio"), (source,)),)

@@ -21,3 +21,12 @@ ignored `work/garden-probe/` directory:
 
 The current candidate manifest remains `pending_human_review`; no full Garden run is authorized by
 the repository automation.
+
+## Stretch goal: production approval workflow
+
+For this local restoration milestone, the signed HMAC approval is sufficient to keep the execution
+gate explicit. A production deployment should replace it with an identity-backed asymmetric
+attestation and policy decision point (for example, OPA/Cedar plus an in-toto/DSSE-style receipt),
+with expiry, revocation, key rotation, and reviewer authentication. That production approval
+workflow is intentionally punted to a stretch goal; it is not required for the current local
+sample approval.

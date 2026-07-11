@@ -19,11 +19,17 @@ def ensure_progressive(probe: dict) -> None:
         raise ValueError("source may be interlaced; faithful lane refuses implicit deinterlacing")
 
 
-def baseline_command(source: Path, destination: Path, *, crf: int = 19) -> list[str]:
+def baseline_command(source: Path, destination: Path, *, crf: int = 19, target_aspect: str = "preserve") -> list[str]:
     _distinct(source, destination)
     if not 16 <= crf <= 24:
         raise ValueError("conservative CRF must be between 16 and 24")
-    return [tool_path("ffmpeg"), "-hide_banner", "-y", "-i", str(source), "-vf", "pp7=qp=2:mode=medium,hqdn3d=3:2:6:4", "-map", "0:v:0", "-c:v", "libx264", "-crf", str(crf), "-preset", "slow", "-pix_fmt", "yuv420p", "-an", str(destination)]
+    crop = {"preserve": None, "4:3": "crop=iw:iw*3/4", "16:9": "crop=iw:iw*9/16", "1:1": "crop=ih:ih"}
+    if target_aspect not in crop:
+        raise ValueError("unsupported target aspect ratio")
+    filters = ["pp7=qp=2:mode=medium", "hqdn3d=3:2:6:4"]
+    if crop[target_aspect]:
+        filters.append(crop[target_aspect])
+    return [tool_path("ffmpeg"), "-hide_banner", "-y", "-i", str(source), "-vf", ",".join(filters), "-map", "0:v:0", "-c:v", "libx264", "-crf", str(crf), "-preset", "slow", "-pix_fmt", "yuv420p", "-an", str(destination)]
 
 
 def experimental_model_request(model: str, source: Path, destination: Path, *, strength: float = 0.1, seed: int = 0) -> dict:
