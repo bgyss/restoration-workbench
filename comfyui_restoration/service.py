@@ -18,6 +18,7 @@ from .report import export_json, export_markdown
 from .remux import validation_command, compare_streams
 from .validation import validate_invariants
 from .analysis import analyze_probe
+from .video_candidates import candidate_catalog
 
 
 class RestorationService:
@@ -39,7 +40,9 @@ class RestorationService:
 
     def inspect_restoration_capabilities(self, key: str) -> dict:
         self._request("inspect_restoration_capabilities", key)
-        return report()
+        capabilities = report()
+        capabilities["video_candidates"] = candidate_catalog()
+        return capabilities
 
     def probe_media(self, key: str, relative_path: str) -> dict:
         request = self._request("probe_media", key, relative_path)
@@ -58,7 +61,7 @@ class RestorationService:
 
     def list_candidates(self, key: str) -> list[dict]:
         self._request("list_candidates", key)
-        return audio_candidate_matrix()
+        return audio_candidate_matrix() + [{"domain": "video", **candidate} for candidate in candidate_catalog()]
 
     def run_sample_candidates(self, key: str, metrics_by_id: dict[str, dict]) -> list[dict]:
         self._request("run_sample_candidates", key)

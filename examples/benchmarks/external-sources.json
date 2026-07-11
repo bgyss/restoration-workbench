@@ -1,0 +1,43 @@
+{
+  "schema_version": "1",
+  "corpus": "external-source-manifest",
+  "download_policy": "never fetch automatically; fetch only after reviewing the item rights page",
+  "sources": [
+    {
+      "id": "loc-memphis-belle",
+      "title": "The Memphis Belle: A Story of a Flying Fortress",
+      "source_url": "https://www.loc.gov/item/2023602007/",
+      "rights_url": "https://www.loc.gov/free-to-use/public-domain-films-from-the-national-film-registry/",
+      "rights_statement": "Library of Congress National Film Registry selection; public domain",
+      "license": "public-domain",
+      "redistribution": "permitted after verifying the downloaded file and its item record",
+      "failure_modes": ["speech", "music", "motion", "film_grain"],
+      "sha256": null,
+      "download_status": "not_fetched"
+    },
+    {
+      "id": "loc-duck-and-cover",
+      "title": "Duck and Cover",
+      "source_url": "https://memory.loc.gov/item/2022604365/",
+      "rights_url": "https://www.loc.gov/free-to-use/public-domain-films-from-the-national-film-registry/",
+      "rights_statement": "Library of Congress National Film Registry selection; public domain",
+      "license": "public-domain",
+      "redistribution": "permitted after verifying the downloaded file and its item record",
+      "failure_modes": ["speech", "text", "cuts", "film_grain"],
+      "sha256": null,
+      "download_status": "not_fetched"
+    },
+    {
+      "id": "loc-san-francisco-earthquake",
+      "title": "San Francisco earthquake and fire, April 18, 1906",
+      "source_url": "https://www.loc.gov/item/00694425/",
+      "rights_url": "https://www.loc.gov/free-to-use/public-domain-films-from-the-national-film-registry/",
+      "rights_statement": "Library of Congress National Film Registry selection; public domain",
+      "license": "public-domain",
+      "redistribution": "permitted after verifying the downloaded file and its item record",
+      "failure_modes": ["low_light", "motion", "film_damage", "silent_audio"],
+      "sha256": null,
+      "download_status": "not_fetched"
+    }
+  ]
+}

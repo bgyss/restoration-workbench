@@ -19,6 +19,27 @@ def ensure_progressive(probe: dict) -> None:
         raise ValueError("source may be interlaced; faithful lane refuses implicit deinterlacing")
 
 
+def deinterlace_command(
+    source: Path,
+    destination: Path,
+    *,
+    field_order: str,
+    mode: str = "send_frame",
+) -> list[str]:
+    """Build an explicit interlace branch; cadence changes must be visible in the graph."""
+    _distinct(source, destination)
+    if field_order in ("", "progressive", "unknown"):
+        raise ValueError("deinterlace branch requires a detected interlaced field order")
+    if mode not in {"send_frame", "send_field"}:
+        raise ValueError("unsupported deinterlace mode")
+    return [
+        tool_path("ffmpeg"), "-hide_banner", "-y", "-i", str(source),
+        "-vf", f"yadif=mode={mode}:parity=auto:deint=interlaced",
+        "-map", "0:v:0", "-c:v", "libx264", "-crf", "19", "-preset", "slow",
+        "-pix_fmt", "yuv420p", "-an", str(destination),
+    ]
+
+
 def baseline_command(source: Path, destination: Path, *, crf: int = 19, target_aspect: str = "preserve") -> list[str]:
     _distinct(source, destination)
     if not 16 <= crf <= 24:

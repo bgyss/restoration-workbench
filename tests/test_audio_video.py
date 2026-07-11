@@ -6,7 +6,7 @@ import pytest
 
 from comfyui_restoration.audio import detect_clicks, guard_loudness_command, repair_command
 from comfyui_restoration.adapters.audio_models import AudioModelRequest, command as audio_model_command, round_trip_sample_count
-from comfyui_restoration.video import ensure_progressive, experimental_model_request
+from comfyui_restoration.video import deinterlace_command, ensure_progressive, experimental_model_request
 
 
 def test_click_detector_finds_synthetic_full_scale_jump(tmp_path: Path):
@@ -41,6 +41,9 @@ def test_video_lane_refuses_interlaced_and_labels_generation():
     assert "crop=iw:iw*3/4" in " ".join(baseline_command(Path("a"), Path("b"), target_aspect="4:3"))
     with pytest.raises(ValueError):
         baseline_command(Path("a"), Path("b"), target_aspect="2:1")
+    assert "yadif=mode=send_frame" in " ".join(deinterlace_command(Path("a"), Path("b"), field_order="tt"))
+    with pytest.raises(ValueError):
+        deinterlace_command(Path("a"), Path("b"), field_order="progressive")
 
 
 def test_neural_enhancement_requires_explicit_experimental_label():

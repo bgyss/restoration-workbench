@@ -15,4 +15,5 @@ jobs:
       - run: uv sync --all-groups
       - run: uv run ruff check comfyui_restoration scripts tests
       - run: uv run pytest -q
-      - run: uv run python -c "import json; from pathlib import Path; [json.loads(p.read_text()) for p in list(Path('examples/workflows').glob('*.json')) + list(Path('comfyui_restoration/schemas').glob('*.json'))]"
+      - run: uv run python scripts/validate_workflows.py
+      - run: uv run python -c "import json; from pathlib import Path; [json.loads(p.read_text()) for p in Path('comfyui_restoration/schemas').glob('*.json')]"

@@ -43,7 +43,7 @@ run = "python scripts/check_lite.py"
 
 [tasks.test-workflows]
 description = "Validate checked-in UI/API workflow JSON"
-run = "python -c \"import json; from pathlib import Path; [json.loads(p.read_text()) for p in Path('examples/workflows').glob('*.json')]\""
+run = "python scripts/validate_workflows.py"
 
 [tasks.test-e2e-small]
 description = "Run the tiny generated FFmpeg fixture through faithful branches"

@@ -11,7 +11,7 @@ from ..audio import detect_clicks, repair_command
 from ..audio import guard_loudness_command
 from ..adapters.audio_models import AudioModelRequest, command as audio_model_command
 from ..review import build_review_bundle
-from ..video import baseline_command
+from ..video import baseline_command, deinterlace_command
 from ..chunking import audio_route_manifest, plan_video_chunks
 from ..video import stitch_qc
 from ..sampling import plan_samples as build_sample_plan
@@ -139,6 +139,20 @@ class VideoBaselineRestore:
         probe = ffprobe(Path(destination))
         stream = next(item for item in probe.get("streams", []) if item.get("codec_type") == "video")
         return (VideoArtifact(destination, int(stream.get("width", 0)), int(stream.get("height", 0)), int(stream.get("nb_frames", 0) or 0), str(stream.get("r_frame_rate", "")), stream.get("sample_aspect_ratio"), stream.get("display_aspect_ratio"), (source,)),)
+
+
+class VideoInterlaceHandler:
+    CATEGORY = "Restoration/04 Video"
+    RETURN_TYPES = ("RESTORATION_VIDEO",)
+    FUNCTION = "deinterlace"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"source": ("STRING",), "destination": ("STRING",), "field_order": (["tt", "bb", "tb", "bt"],), "mode": (["send_frame", "send_field"],)}}
+
+    def deinterlace(self, source: str, destination: str, field_order: str, mode: str):
+        run_command(deinterlace_command(Path(source), Path(destination), field_order=field_order, mode=mode))
+        return (destination,)
 
 
 class CompareCandidates:
@@ -314,5 +328,5 @@ class ResumableFullRun:
         return (state,)
 
 
-NODE_CLASS_MAPPINGS = {"RestorationLoadMedia": RestorationLoadMedia, "AnalyzeSource": AnalyzeSource, "ExtractLosslessAudio": ExtractLosslessAudio, "DetectAudioDefects": DetectAudioDefects, "RepairAudioDefects": RepairAudioDefects, "AudioEQLoudnessGuard": AudioEQLoudnessGuard, "DeepFilterNetAudio": OptionalAudioModel, "VoiceFixerAudio": OptionalAudioModel, "ResembleEnhanceAudio": OptionalAudioModel, "DemucsSeparateRecombine": OptionalAudioModel, "PlanRepresentativeSamples": PlanRepresentativeSamples, "VideoBaselineRestore": VideoBaselineRestore, "CompareCandidates": CompareCandidates, "AudioSegmentRouter": AudioSegmentRouter, "VideoChunkPlannerStitcher": VideoChunkPlannerStitcher, "VideoModelAdapter": VideoModelAdapter, "PreservationAwareRemux": PreservationAwareRemux, "ValidateRestoration": ValidateRestoration, "ExportReviewReport": ExportReviewReport, "HumanApprovalGate": HumanApprovalGate, "ResumableFullRun": ResumableFullRun}
+NODE_CLASS_MAPPINGS = {"RestorationLoadMedia": RestorationLoadMedia, "AnalyzeSource": AnalyzeSource, "ExtractLosslessAudio": ExtractLosslessAudio, "DetectAudioDefects": DetectAudioDefects, "RepairAudioDefects": RepairAudioDefects, "AudioEQLoudnessGuard": AudioEQLoudnessGuard, "DeepFilterNetAudio": OptionalAudioModel, "VoiceFixerAudio": OptionalAudioModel, "ResembleEnhanceAudio": OptionalAudioModel, "DemucsSeparateRecombine": OptionalAudioModel, "PlanRepresentativeSamples": PlanRepresentativeSamples, "VideoBaselineRestore": VideoBaselineRestore, "VideoInterlaceHandler": VideoInterlaceHandler, "CompareCandidates": CompareCandidates, "AudioSegmentRouter": AudioSegmentRouter, "VideoChunkPlannerStitcher": VideoChunkPlannerStitcher, "VideoModelAdapter": VideoModelAdapter, "PreservationAwareRemux": PreservationAwareRemux, "ValidateRestoration": ValidateRestoration, "ExportReviewReport": ExportReviewReport, "HumanApprovalGate": HumanApprovalGate, "ResumableFullRun": ResumableFullRun}
 NODE_DISPLAY_NAME_MAPPINGS = {key: "Restoration " + key.removeprefix("Restoration").replace("Audio", " Audio") for key in NODE_CLASS_MAPPINGS}
