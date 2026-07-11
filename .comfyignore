@@ -1,0 +1,14 @@
+# Development-only files and local/private evidence must not enter Registry archives.
+tests/
+docs/prompts/
+work/
+video/
+.venv/
+.uv-cache/
+.git/
+.github/
+*.mkv
+*.wav
+*.flac
+*.onnx
+*.safetensors

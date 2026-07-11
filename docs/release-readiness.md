@@ -3,6 +3,9 @@
 This checkout is prepared for review but is not a release claim. Before publication:
 
 - replace the placeholder repository URL in `CITATION.cff`;
+- verify the `bgyss/restoration-workbench` repository and `bgyss` PublisherId after authenticated creation;
+- retain the short Registry node ID `restoration-workbench`; the Python import namespace remains `comfyui_restoration`;
+- validate the Registry archive against `.comfyignore` before any publication;
 - review the GitHub issue templates for privacy-safe reproduction guidance;
 - run `mise run check`, `mise run test-workflows`, `mise run test-e2e-small`, and `mise run audit-public`;
 - CI runs the public-history audit and CPU-only tiny FFmpeg E2E after installing FFmpeg on the runner;

@@ -45,3 +45,8 @@ nodes; the implementation follows that boundary and keeps subprocess arguments f
 See the [registry security standards](https://docs.comfy.org/registry/standards). Registry names
 are globally unique and published versions are immutable, so publication remains a separately
 approved release step; see the [registry overview](https://docs.comfy.org/registry/overview).
+
+The Registry `pyproject.toml` specification requires project repository metadata and a
+`[tool.comfy]` publisher identifier. This checkout now targets `bgyss/restoration-workbench` and
+PublisherId `bgyss`; authenticated repository creation and Registry publication remain separate
+gates.

@@ -9,7 +9,7 @@ The next-generation plan in
 extends that conservative baseline into a public ComfyUI audio/video restoration workbench with
 optional neural reconstruction, sample-gated long runs, and an MCP-ready agent interface.
 
-The installable distribution is `comfyui-restoration-workbench` and its Python package is
+The installable distribution is `restoration-workbench` and its Python package is
 `comfyui_restoration`. It provides file-backed typed artifacts,
 workspace/path safety, versioned run manifests, and thin ComfyUI nodes. Install or copy this
 checkout into `custom_nodes/`; the generic workflow in `examples/workflows/` is intentionally

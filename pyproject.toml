@@ -1,9 +1,19 @@
 [project]
-name = "comfyui-restoration-workbench"
+name = "restoration-workbench"
 version = "0.1.0"
 description = "Local-first ComfyUI workbench for evidence-driven audio/video restoration."
+license = { file = "LICENSE" }
 requires-python = ">=3.12,<3.13"
 dependencies = []
+
+[project.urls]
+Repository = "https://github.com/bgyss/restoration-workbench"
+Documentation = "https://github.com/bgyss/restoration-workbench/tree/main/docs"
+
+[tool.comfy]
+PublisherId = "bgyss"
+DisplayName = "Audio/Video Restoration Workbench"
+requires-comfyui = ">=0.0.0"
 
 [build-system]
 requires = ["setuptools>=68"]
