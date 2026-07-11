@@ -28,29 +28,27 @@ def test_fixture_command_is_explicit():
 
 
 def test_service_approval_run_status_and_cancel(tmp_path: Path):
-    service = RestorationService(tmp_path, approval_secret=b"test-secret")
+    service = RestorationService(tmp_path)
     parameters = {"branch": "faithful"}
     approval = Approval(candidate_hash(parameters), "reviewer", ({"sample": "A", "decision": "approve"},))
-    signature = approval.signature(b"test-secret")
-    state = service.run_approved_full_restoration("run", "r1", parameters, approval, ["A"], signature)
+    state = service.run_approved_full_restoration("run", "r1", parameters, approval, ["A"])
     assert state["status"] == "complete"
     assert service.get_run_status("status", "r1")["status"] == "complete"
     with pytest.raises(ValueError):
         service.cancel_run("cancel", "r1")
 
 
-def test_service_cannot_forge_or_use_unsigned_approval(tmp_path: Path):
-    service = RestorationService(tmp_path, approval_secret=b"host-secret")
-    with pytest.raises(PermissionError):
-        service.record_human_approval("approval", {"branch": "faithful"}, "reviewer", [{"decision": "approve"}], "bad")
+def test_service_records_unsigned_visual_approval(tmp_path: Path):
+    service = RestorationService(tmp_path)
+    record = service.record_human_approval("approval", {"branch": "faithful"}, "reviewer", [{"decision": "approve"}])
+    assert "signature" not in record
 
 
 def test_service_accepts_json_approval_record_for_stdio_round_trip(tmp_path: Path):
-    service = RestorationService(tmp_path, approval_secret=b"host-secret")
+    service = RestorationService(tmp_path)
     parameters = {"branch": "faithful"}
     approval = Approval(candidate_hash(parameters), "reviewer", ({"sample": "A", "decision": "approve"},))
-    signature = approval.signature(b"host-secret")
-    record = {"candidate_hash": approval.candidate_hash, "reviewer": approval.reviewer, "decisions": list(approval.decisions), "authority": "human", "signature": signature}
+    record = {"candidate_hash": approval.candidate_hash, "reviewer": approval.reviewer, "decisions": list(approval.decisions), "authority": "human"}
     state = service.run_approved_full_restoration("json-run", "r2", parameters, record, ["A"])
     assert state["status"] == "complete"
 

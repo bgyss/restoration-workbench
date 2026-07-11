@@ -55,21 +55,26 @@ assets, and outputs are written. Never point an output destination at the source
 
 Review the generated sample media and manifests before scaling up. Check dimensions, cadence,
 audio sync, combing/interlacing behavior, clicks/hiss, speech identity, ambience, and any crop.
-The workflow does not replace the human approval gate.
+The workflow records a visual human review decision. This Desktop path does not require an
+approval secret or signature.
 
 The matching API-format file is
 `examples/workflows/generic_restoration_review_api.json`. Use it only with an API client or the
 ComfyUI queue API; the UI-format JSON is the file to open interactively in Desktop.
 
-## 4. Test the approval boundary
+## 4. Record visual review and continue
 
-The full workflow is intentionally not a one-click restore. `Human Approval Gate` requires a
-decision record tied to candidate parameters and a host signature. `Resumable Full Run` refuses
-to execute without that approval. Keep the approval secret in the host environment and never put
-it in a workflow JSON, a repository file, or a public log.
+After comparing the candidates, enter the decision JSON in `Human Approval Gate`, for example
+`[{"sample":"A","decision":"approve"}]`. The node records the candidate hash and reviewer
+decision for the local run. No approval secret or signature is needed in Desktop.
 
-For the first Desktop test, stop after sample review. Do not run the full workflow or publish a
-Registry package until the sample results and the Desktop behavior have been reviewed by a human.
+`Resumable Full Run` consumes that visual review record. This is intentionally a local usability
+milestone, not a production authorization boundary. Secure signed approvals remain a stretch goal
+for agent/MCP automation.
+
+For the first Desktop test, stop after sample review unless you explicitly want to exercise the
+local reviewed full-run path. Do not publish a Registry package until the sample results and the
+Desktop behavior have been reviewed by a human.
 
 ## Troubleshooting
 
@@ -79,8 +84,8 @@ Registry package until the sample results and the Desktop behavior have been rev
   only to an unrelated terminal shell.
 - **Path or collision errors:** use a writable workspace outside the source location and ensure
   the destination does not overwrite the input.
-- **The full workflow stops at approval:** this is expected until a valid human approval record and
-  host signature are supplied.
+- **The full workflow stops at review:** enter a non-empty visual decision JSON in `Human Approval
+  Gate`; no host secret or signature is required for Desktop.
 - **Workflow opens but does not queue:** use the review workflow’s terminal planning/output node,
   or update from the repository version that includes the workflow terminal-node fix.
 

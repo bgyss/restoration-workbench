@@ -23,11 +23,10 @@ from .video_candidates import candidate_catalog
 
 
 class RestorationService:
-    def __init__(self, workspace: Path, *, approval_secret: bytes | None = None):
+    def __init__(self, workspace: Path):
         self.workspace = workspace.resolve()
         self.workspace.mkdir(parents=True, exist_ok=True)
         self._idempotent: dict[str, Any] = {}
-        self._approval_secret = approval_secret
 
     def _request(self, operation: str, key: str, relative_path: str | None = None) -> AgentRequest:
         request = AgentRequest(operation, key, self.workspace, relative_path)
@@ -49,7 +48,6 @@ class RestorationService:
             approval = Approval(
                 str(value["candidate_hash"]), str(value["reviewer"]),
                 tuple(value["decisions"]), str(value.get("authority", "human")),
-                value.get("signature"),
             )
         except (KeyError, TypeError) as error:
             raise ValueError("malformed approval record") from error
@@ -91,29 +89,20 @@ class RestorationService:
         write_json(self.workspace / "review" / "candidate-results.json", {"schema_version": "1", "candidates": results})
         return results
 
-    def record_human_approval(self, key: str, parameters: dict, reviewer: str, decisions: list[dict], signature: str | None = None) -> dict:
+    def record_human_approval(self, key: str, parameters: dict, reviewer: str, decisions: list[dict]) -> dict:
         self._request("record_human_approval", key)
         if not reviewer.strip() or not decisions:
             raise ValueError("reviewer and decisions are required")
-        if self._approval_secret is None or not signature:
-            raise PermissionError("human approval must be signed by the host authority")
         approval = Approval(candidate_hash(parameters), reviewer, tuple(decisions))
         approval.validate()
-        approval.verify(self._approval_secret, signature)
         path = self.workspace / "review" / "approval.json"
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"candidate_hash": approval.candidate_hash, "reviewer": reviewer, "decisions": decisions, "authority": "human", "signature": signature}, indent=2) + "\n")
+        path.write_text(json.dumps({"candidate_hash": approval.candidate_hash, "reviewer": reviewer, "decisions": decisions, "authority": "human"}, indent=2) + "\n")
         return json.loads(path.read_text())
 
-    def run_approved_full_restoration(self, key: str, run_id: str, parameters: dict, approval: Approval | dict, chunks: list[str], signature: str | None = None) -> dict:
+    def run_approved_full_restoration(self, key: str, run_id: str, parameters: dict, approval: Approval | dict, chunks: list[str]) -> dict:
         self._request("run_approved_full_restoration", key)
-        if self._approval_secret is None or not signature:
-            if isinstance(approval, dict):
-                signature = approval.get("signature")
-        if self._approval_secret is None or not signature:
-            raise PermissionError("full execution requires a host-signed approval")
         approval_record = self._approval_value(approval)
-        approval_record.verify(self._approval_secret, signature)
         return ResumableRun(self.workspace, run_id, parameters).execute(chunks, lambda chunk: f"runs/{run_id}/{chunk}.done", approval_record)
 
     def get_run_status(self, key: str, run_id: str) -> dict:

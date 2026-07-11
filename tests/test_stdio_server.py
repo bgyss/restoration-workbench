@@ -21,6 +21,6 @@ def test_stdio_server_handles_malformed_json(tmp_path: Path):
     assert response["error"]["type"] == "JSONDecodeError"
 
 
-def test_stdio_server_can_use_host_secret_without_exposing_it_in_requests(tmp_path: Path):
-    server = StdioAgentServer(tmp_path, approval_secret=b"host-secret")
-    assert server.service._approval_secret == b"host-secret"
+def test_stdio_server_has_no_secret_configuration(tmp_path: Path):
+    server = StdioAgentServer(tmp_path)
+    assert not hasattr(server.service, "_approval_secret")

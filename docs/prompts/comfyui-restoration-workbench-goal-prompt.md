@@ -70,7 +70,7 @@ media input
   -> audio analysis + selectable restoration candidates
   -> video analysis + selectable restoration candidates
   -> synchronized QC and comparison bundle
-  -> human approval gate
+  -> human visual-review gate
   -> resumable full execution
   -> final EQ/loudness guardrail
   -> preservation-aware FFmpeg remux
@@ -240,8 +240,8 @@ Names may improve during implementation, but the public capability set must incl
     a cadence change.
 16. **Compare Candidates** — creates synchronized A/B/X audio clips, waveform/spectrogram/loudness
     views, side-by-side video, difference views, contact sheets, metric tables, and artifact flags.
-17. **Human Approval Gate** — blocks full execution until all required sample decisions are stored
-    in an approval record tied to exact candidate hashes. Graph execution alone cannot self-approve.
+17. **Human Review Gate** — records all required sample decisions in a visual review record tied
+    to exact candidate hashes. Secure signatures and identity attestation are future stretch goals.
 18. **Resumable Full Run** — chunk queue, bounded resource usage, progress, cancellation, retry,
     cache/resume, free-space estimate, and projected completion time.
 19. **Preservation-Aware Remux** — FFmpeg/mkvtoolnix-backed remux that preserves approved streams,
@@ -353,7 +353,7 @@ Ship both ComfyUI UI-format and API-format JSON if current ComfyUI tooling requi
 - `examples/workflows/garden_restoration_review.json`: configured for a user-supplied local file
   named `The Garden (Wiseman, 2005).mkv`, but containing no bundled media or personal absolute path.
 - `examples/workflows/generic_restoration_review.json`: same graph with a neutral replaceable input.
-- `examples/workflows/generic_restoration_full.json`: consumes a signed/recorded approval artifact
+- `examples/workflows/generic_restoration_full.json`: consumes a recorded visual-review artifact
   from the review workflow and performs the resumable full run.
 
 Expose the input path, stream choices, sample plan, restoration presets, devices, chunk sizes,
@@ -443,14 +443,15 @@ Agent-accessible operations must enforce:
 - bounded parameters, file sizes, concurrency, GPU use, time, and storage;
 - no arbitrary shell, Python, node installation, model download, network fetch, or workflow-supplied
   executable path;
-- explicit approval for model/node installation, external downloads, full runs, and publication;
+- explicit operator review for model/node installation, external downloads, full runs, and publication;
 - structured progress/errors and idempotency keys;
-- separation between "candidate recommended" and "human approved";
+- separation between "candidate recommended" and "human reviewed";
 - redaction of local paths, tokens, prompts, and private media metadata from logs/public reports.
 
 Create MCP contract tests using a fake client and tiny synthetic fixtures. The agent should be able
 to reproduce a sample run from a manifest, but it must be technically unable to forge the human
-approval artifact under the same authority used for analysis.
+  visual-review artifact under the same authority used for analysis. Secure signatures are deferred
+  to a stretch goal.
 
 ## Public-repository readiness and publication
 
@@ -536,7 +537,7 @@ capture, extracted frames/audio, hashes that expose private provenance unnecessa
 
 - Freeze stable logical workflow parameters and implement/test the agent tool contract.
 - Demonstrate an agent planning and executing sample candidates, reporting results, and stopping at
-  the human gate; then demonstrate resuming only after a valid approval record.
+  the human visual-review gate; then demonstrate resuming only after a valid review record.
 
 ### Phase 8 — Public release
 
@@ -585,7 +586,7 @@ For each real sample/full run, capture:
 5. Garden and generic review/full workflow JSON files, valid in UI and API execution modes.
 6. Automated unit, schema, security, workflow, and tiny end-to-end tests.
 7. Public/synthetic benchmark manifests and a source-backed evaluation report.
-8. Garden sample review bundle and, only after human approval, a local full restored output and
+8. Garden sample review bundle and, only after human visual review, a local full restored output and
    restoration report.
 9. MCP/agent tool contract, threat model, fake-client tests, and gated demonstration.
 10. Public GitHub repository with clean anonymous installation and an initial tagged release.
@@ -622,7 +623,7 @@ Pause and request human direction when:
 - sample reviewers cannot prefer a candidate under level-matched/blind conditions;
 - a full run would exceed approved compute, storage, cost, or time limits;
 - a requested action would overwrite/delete source media, expose private paths/data, install
-  unreviewed executable code, download from an unapproved origin, or weaken the approval boundary;
+  unreviewed executable code, download from an unapproved origin, or weaken the path-safety boundary;
 - GitHub repository ownership/name is ambiguous, a remote already exists with unrelated history, or
   publication would require rewriting history;
 - the Garden capture or any derived media is about to be committed, uploaded, or published.

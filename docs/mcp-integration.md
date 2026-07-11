@@ -7,7 +7,8 @@ retain its own authentication/session policy without importing ComfyUI internals
 
 The transport does not expose shell execution, Python evaluation, network fetches, model downloads,
 node installation, or publication. The service still enforces workspace containment, idempotency,
-candidate hashes, and human approval before full execution. Run it with a dedicated workspace:
+candidate hashes, and a recorded visual human review before full execution. Secure signed
+attestation is a future stretch goal. Run it with a dedicated workspace:
 
 ```sh
 python scripts/agent_stdio.py /path/to/restricted-workspace

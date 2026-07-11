@@ -16,8 +16,8 @@ from .service import RestorationService
 
 
 class StdioAgentServer:
-    def __init__(self, workspace: Path, *, approval_secret: bytes | None = None):
-        self.service = RestorationService(workspace, approval_secret=approval_secret)
+    def __init__(self, workspace: Path):
+        self.service = RestorationService(workspace)
 
     def handle(self, request: dict) -> dict:
         request_id = request.get("id")

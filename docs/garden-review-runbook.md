@@ -11,12 +11,9 @@ ignored `work/garden-probe/` directory:
    guardrails, not as an aesthetic score.
 4. Record a human decision for every required sample and candidate. Keep rejected alternatives and
    reasons in the candidate manifest.
-5. Only a host-held `COMFYUI_RESTORATION_APPROVAL_SECRET` can validate the HMAC approval artifact.
-   The agent and workflow cannot manufacture that signature.
-   To promote an already recorded human decision, configure that secret in the host environment
-   and run `python scripts/sign_approval.py work/garden-probe/approval-dsp-afftdn.json`. Never put
-   the secret in Git, a workflow JSON, or a chat message.
-6. After approval, use the resumable full workflow with a storage/time estimate. Preserve the
+5. Record the visual decision in the Desktop gate or local service. No host secret or signature is
+   required for the current milestone; secure attestation is a future stretch goal.
+6. After review, use the resumable full workflow with a storage/time estimate. Preserve the
    faithful master even if an experimental derivative is selected.
 
 The current candidate manifest remains `pending_human_review`; no full Garden run is authorized by
@@ -24,9 +21,7 @@ the repository automation.
 
 ## Stretch goal: production approval workflow
 
-For this local restoration milestone, the signed HMAC approval is sufficient to keep the execution
-gate explicit. A production deployment should replace it with an identity-backed asymmetric
-attestation and policy decision point (for example, OPA/Cedar plus an in-toto/DSSE-style receipt),
-with expiry, revocation, key rotation, and reviewer authentication. That production approval
-workflow is intentionally punted to a stretch goal; it is not required for the current local
-sample approval.
+The current local workflow uses visual review only. A future production deployment may add
+identity-backed asymmetric attestation and a policy decision point (for example, OPA/Cedar plus an
+in-toto/DSSE-style receipt), with expiry, revocation, key rotation, and reviewer authentication.
+Secure approval is intentionally punted to a stretch goal.

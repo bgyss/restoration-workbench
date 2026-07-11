@@ -1,7 +1,6 @@
 """Thin ComfyUI node adapters; media policy remains in :mod:`comfyui_restoration.core`."""
 
 from pathlib import Path
-import os
 from typing import Any
 
 from ..core import AudioArtifact, MediaSource, SamplePlan, VideoArtifact
@@ -293,18 +292,14 @@ class HumanApprovalGate:
 
     @classmethod
     def INPUT_TYPES(cls):
-        return {"required": {"parameters_json": ("STRING", {"default": "{}"}), "reviewer": ("STRING", {"default": "human"}), "decision_json": ("STRING", {"default": "[]"}), "signature": ("STRING", {"default": ""})}}
+        return {"required": {"parameters_json": ("STRING", {"default": "{}"}), "reviewer": ("STRING", {"default": "human"}), "decision_json": ("STRING", {"default": "[]"})}}
 
-    def approve(self, parameters_json: str, reviewer: str, decision_json: str, signature: str):
+    def approve(self, parameters_json: str, reviewer: str, decision_json: str):
         import json
         parameters = json.loads(parameters_json)
         decisions = tuple(json.loads(decision_json))
-        secret = os.environ.get("COMFYUI_RESTORATION_APPROVAL_SECRET")
-        if not secret:
-            raise PermissionError("host approval secret is not configured")
-        approval = Approval(candidate_hash(parameters), reviewer, decisions, signature_value=signature)
+        approval = Approval(candidate_hash(parameters), reviewer, decisions)
         approval.validate()
-        approval.verify(secret.encode(), signature)
         return (approval,)
 
 
@@ -320,10 +315,7 @@ class ResumableFullRun:
 
     def start(self, workspace: str, run_id: str, parameters_json: str, approval: Approval, chunks_json: str):
         import json
-        secret = os.environ.get("COMFYUI_RESTORATION_APPROVAL_SECRET")
-        if not secret or not approval.signature_value:
-            raise PermissionError("full execution requires a host-signed approval")
-        approval.verify(secret.encode(), approval.signature_value)
+        approval.validate()
         parameters = json.loads(parameters_json)
         run = ResumableRun(Path(workspace), run_id, parameters)
         state = run.execute(json.loads(chunks_json), lambda chunk: str(Path("runs") / run_id / f"{chunk}.done"), approval)

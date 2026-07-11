@@ -20,8 +20,9 @@ verified work from the remaining release validation.
 
 No source media, model weights, personal paths, or generated review assets belong in this repository.
 
-The production-grade identity-backed approval/attestation workflow is a stretch goal. The current
-local HMAC gate is retained for the sample-first milestone only.
+Secure identity-backed approval/attestation is a stretch goal. The ComfyUI Desktop milestone uses
+visual review only and does not require an approval secret or signature. Secure HMAC or
+identity-backed attestation is a future stretch goal.
 
 Do not formally release the ComfyUI workflow or custom-node setup until it has been tested in an
 actual ComfyUI Desktop installation by the project owner. Local headless/API checks are useful

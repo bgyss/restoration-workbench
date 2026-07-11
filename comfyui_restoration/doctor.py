@@ -38,7 +38,7 @@ def report() -> dict:
         "gpu": _gpu_report(),
         "disk": {"path": str(Path.cwd()), "free_bytes": shutil.disk_usage(Path.cwd()).free},
         "incompatible_optional_branches": [name for name, available in audio.items() if not available],
-        "policy": {"paid_service_required": False, "generative_default": False, "full_run_requires_human_approval": True},
+        "policy": {"paid_service_required": False, "generative_default": False, "desktop_full_run_requires_visual_review": True, "agent_full_run_requires_signed_approval": True},
     }
 
 

@@ -16,7 +16,7 @@ checkout into `custom_nodes/`; the generic workflow in `examples/workflows/` is 
 media-free. Optional neural adapters are not required for the conservative path.
 
 The package deliberately ships explicit bypass nodes while adapters are being evaluated. A stub
-branch cannot claim restoration, and full execution must remain downstream of a human approval
+branch cannot claim restoration, and Desktop full execution remains downstream of a visual human review
 artifact. See [`docs/upstream-evaluation.md`](docs/upstream-evaluation.md) for the current
 integration/licensing boundary.
 
@@ -106,8 +106,9 @@ explicitly labeled, and never imply that generated detail is recovered historica
 - Review and execution: `CompareCandidates`, `HumanApprovalGate`, `ResumableFullRun`.
 - Output: `PreservationAwareRemux`, `ValidateRestoration`, `ExportReviewReport`.
 
-The review workflow is the default entry point. The full workflow requires an approval record tied
-to candidate parameters and a host signature; graph execution cannot self-approve.
+The review workflow is the default entry point. In ComfyUI Desktop, the full workflow consumes a
+visual review decision recorded in the graph and does not require an approval secret or signature.
+Secure attestation is a future stretch goal across Desktop and agent/MCP paths.
 
 ## Hardware and limitations
 
@@ -121,8 +122,9 @@ to candidate parameters and a host signature; graph execution cannot self-approv
 VoiceFixer, Resemble Enhance, Demucs, BasicVSR++, and RVRT are not bundled. Their runners,
 weights, licenses, hashes, and hardware requirements must be reviewed separately. Optional model
 stacks may need isolated environments because their Python/PyTorch/CUDA requirements can conflict.
-The current production identity-backed approval/attestation workflow is deliberately a stretch goal;
-the local HMAC gate is the sample-first milestone.
+Secure identity-backed approval/attestation is deliberately a stretch goal. The current Desktop
+milestone uses visual review only; secure HMAC or identity-backed attestation is a future stretch
+goal.
 
 ## Validation and development
 

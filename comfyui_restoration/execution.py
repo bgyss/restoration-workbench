@@ -1,9 +1,8 @@
-"""Approval-gated, resumable execution primitives."""
+"""Visual-review-based, resumable execution primitives."""
 
 from __future__ import annotations
 
 import hashlib
-import hmac
 import json
 import time
 from dataclasses import dataclass
@@ -20,21 +19,9 @@ class Approval:
     reviewer: str
     decisions: tuple[dict, ...]
     authority: str = "human"
-    signature_value: str | None = None
-
-    def signing_payload(self) -> bytes:
-        return json.dumps({"candidate_hash": self.candidate_hash, "reviewer": self.reviewer, "decisions": self.decisions, "authority": self.authority}, sort_keys=True, separators=(",", ":")).encode()
-
-    def signature(self, secret: bytes) -> str:
-        return hmac.new(secret, self.signing_payload(), hashlib.sha256).hexdigest()
-
-    def verify(self, secret: bytes, signature: str) -> None:
-        if not hmac.compare_digest(self.signature(secret), signature):
-            raise PermissionError("approval signature is invalid")
-
     def validate(self) -> None:
         if self.authority != "human" or not self.reviewer.strip() or not self.decisions:
-            raise ValueError("a non-empty human approval record is required")
+            raise ValueError("a non-empty human visual-review record is required")
 
 
 def candidate_hash(parameters: dict) -> str:
@@ -68,10 +55,10 @@ class ResumableRun:
 
     def execute(self, chunks: list[str], worker: Callable[[str], str], approval: Approval | None = None) -> dict:
         if approval is None:
-            raise PermissionError("full execution requires a human approval artifact")
+            raise PermissionError("full execution requires a human visual-review record")
         approval.validate()
         if approval.candidate_hash != candidate_hash(self.parameters):
-            raise ValueError("approval is for different candidate parameters")
+            raise ValueError("review is for different candidate parameters")
         estimate = self.parameters.get("estimated_storage_bytes")
         preflight = None
         if estimate is not None:
