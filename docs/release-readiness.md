@@ -22,3 +22,7 @@ No source media, model weights, personal paths, or generated review assets belon
 
 The production-grade identity-backed approval/attestation workflow is a stretch goal. The current
 local HMAC gate is retained for the sample-first milestone only.
+
+Do not formally release the ComfyUI workflow or custom-node setup until it has been tested in an
+actual ComfyUI Desktop installation by the project owner. Local headless/API checks are useful
+evidence, but do not substitute for that Desktop validation.
