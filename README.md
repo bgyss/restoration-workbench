@@ -4,6 +4,11 @@ This repository contains the reproducible environment for the pipeline in
 [`docs/prompts/restoration-goal-prompt.md`](docs/prompts/restoration-goal-prompt.md).
 The source capture and generated media stay outside version control.
 
+The next-generation plan in
+[`docs/prompts/comfyui-restoration-workbench-goal-prompt.md`](docs/prompts/comfyui-restoration-workbench-goal-prompt.md)
+extends that conservative baseline into a public ComfyUI audio/video restoration workbench with
+optional neural reconstruction, sample-gated long runs, and an MCP-ready agent interface.
+
 ## First use
 
 With Nix installed:
