@@ -226,8 +226,14 @@ def remux_and_qc(r: Runner, source_data: dict) -> None:
     r.ffmpeg("-v", "error", "-i", str(final), "-f", "null", "-")
     final_probe = r.ffprobe("-v", "error", "-show_format", "-show_streams", "-of", "json", str(final), capture=True)
     (r.workdir / "review" / "final-ffprobe.json").write_text(final_probe.stdout)
-    if abs(duration(json.loads(final_probe.stdout)) - duration(source_data)) > 0.1:
-        raise RuntimeError("Final duration differs from source by more than 100 ms")
+    # Source containers can carry stale/inflated format.duration metadata that doesn't
+    # match either real stream's content length (observed: source tag overstated the
+    # actual video and audio content by 160-285ms on a real file). audio_src.wav is a
+    # sample-accurate PCM decode of the source audio, so it's the reliable reference.
+    audio_src_probe = r.ffprobe("-v", "error", "-show_format", "-of", "json", str(r.workdir / "audio_src.wav"), capture=True)
+    expected_duration = duration(json.loads(audio_src_probe.stdout))
+    if abs(duration(json.loads(final_probe.stdout)) - expected_duration) > 0.1:
+        raise RuntimeError("Final duration differs from source audio by more than 100 ms")
     final_review = r.workdir / "review" / "final"
     final_review.mkdir(exist_ok=True)
     chapter_text = chapters.read_text()
